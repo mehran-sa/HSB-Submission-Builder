@@ -145,6 +145,14 @@ tr.has-bad td.num::before { content: "●"; font-size: 9px; margin-right: 3px; v
 tr.has-warn td.num { color: var(--warn); font-weight: 600; }
 .tiers.missing .tier-chip { border-color: var(--bad); }
 
+.progress-box { display: grid; gap: 8px; padding: 10px 12px; border-radius: 10px; background: var(--bg); border: 1px dashed var(--line); }
+.progress-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pchip { font-size: 12px; padding: 3px 9px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); font-variant-numeric: tabular-nums; }
+.pchip b { color: var(--ink); font-weight: 600; }
+.pchip.done { background: var(--tint); border-color: transparent; color: var(--ok); }
+.pchip.done b { color: var(--ok); }
+.tile.status.in-progress { border-left-color: var(--line); }
+.linkish { border: 0; background: none; padding: 0 2px; color: var(--green-ink); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 .check-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .count-pill { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; }
 .count-pill.bad { background: var(--bad); color: #fff; }
@@ -186,6 +194,9 @@ tr.has-warn td.num { color: var(--warn); font-weight: 600; }
 .pv-actions { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
 .pv-actions a { font-weight: 600; font-size: 12.5px; }
 #modeNote { display: block; }
+.mkt-head { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.mkt-head label { margin-right: auto; }
+.mkt-meta { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .ver { display: inline-block; font-size: 11px; font-weight: 600; padding: 0 7px; border-radius: 999px; background: var(--tint); color: var(--green-ink); }
 .btn.connected { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); }
 .modal-back { position: fixed; inset: 0; background: rgba(10, 16, 12, .45); z-index: 60; display: grid; place-items: center; padding: 16px; }
@@ -227,7 +238,7 @@ a.open-link[hidden] { display: none; }
   <div class="top-inner">
     <div class="brand">
       <h1>HSB Submission Builder</h1>
-      <small>Fill once, download the Humble Bundle sheet in the exact 3-tab format. <span class="ver" id="verTag">v4 · 18 Nov</span> <span id="modeNote"></span></small>
+      <small>Fill once, download the Humble Bundle sheet in the exact 3-tab format. <span class="ver" id="verTag">v5 · 18 Nov</span> <span id="modeNote"></span></small>
     </div>
     <div class="actions">
       <label class="btn" for="importFile" title="Load a sheet you submitted before and reuse it">Import a previous sheet</label>
@@ -246,7 +257,7 @@ a.open-link[hidden] { display: none; }
   <!-- Checks -->
   <section class="card" id="checksCard" aria-labelledby="h-checks">
     <div class="card-head">
-      <div><h2 id="h-checks">Missing fields &amp; duplicates</h2><p>Updates as you type. <strong>Fix</strong> means a blank, duplicated or broken cell in the sheet. <strong>Check</strong> is worth a look. Click Show to jump to the field. Hover any link to preview it.</p></div>
+      <div><h2 id="h-checks">Missing fields &amp; duplicates</h2><p>Mistakes like duplicates and broken links show as soon as they happen; empty fields are listed when you download. <strong>Fix</strong> means a blank, duplicated or broken cell in the sheet. <strong>Check</strong> is worth a look. Click Show to jump to the field. Hover any link to preview it.</p></div>
       <div class="check-head"><span id="checkCounts" class="check-head"></span><button class="btn small" id="checkLinksBtn" type="button" title="Opens every course page and artwork link to make sure it works and is shared publicly">Check all links</button></div>
     </div>
     <div class="card-body">
@@ -333,14 +344,14 @@ a.open-link[hidden] { display: none; }
   <!-- Marketing -->
   <section class="card" aria-labelledby="h-mkt">
     <div class="card-head">
-      <div><h2 id="h-mkt">Marketing &amp; highlights</h2><p>Goes to the Marketing and Highlights tab. Tier 2 and 3 rows are optional.</p></div>
-      <button class="btn small ai-only" id="aiMktBtn" type="button">Draft tier 1 highlights with AI</button>
+      <div><h2 id="h-mkt">Marketing &amp; highlights</h2><p>Goes to the Marketing and Highlights tab. Tier 1 is the overview of the whole bundle; tiers 2 and 3 describe what each tier gets.</p></div>
+      <button class="btn small ai-only" id="aiMktBtn" type="button">Write empty tiers with AI</button>
     </div>
     <div class="card-body">
-      <div class="field"><label for="m1">Tier 1 highlights (bullets or short description)</label><textarea id="m1" data-m="t1" rows="7"></textarea></div>
+      <div class="field"><div class="mkt-head"><label for="m1">Tier 1 highlights: whole bundle overview</label><span class="mkt-meta" id="mm1"></span><button class="btn small" type="button" data-ai-tier="1">Write with AI</button></div><textarea id="m1" data-m="t1" rows="7"></textarea></div>
       <div class="grid">
-        <div class="field"><label for="m2">Tier 2 highlights</label><textarea id="m2" data-m="t2"></textarea></div>
-        <div class="field"><label for="m3">Tier 3 highlights</label><textarea id="m3" data-m="t3"></textarea></div>
+        <div class="field"><div class="mkt-head"><label for="m2">Tier 2 highlights</label><span class="mkt-meta" id="mm2"></span><button class="btn small" type="button" data-ai-tier="2">Write with AI</button></div><textarea id="m2" data-m="t2" rows="7"></textarea></div>
+        <div class="field"><div class="mkt-head"><label for="m3">Tier 3 highlights</label><span class="mkt-meta" id="mm3"></span><button class="btn small" type="button" data-ai-tier="3">Write with AI</button></div><textarea id="m3" data-m="t3" rows="7"></textarea></div>
       </div>
     </div>
   </section>
@@ -850,39 +861,41 @@ const FIELD_LABEL = { name: "product name", tiers: "tiers", link: "course link",
 
 function computeIssues() {
   const out = [], cells = {};
-  const add = (level, group, msg, target, note) => {
-    out.push({ level, group, msg, target });
+  // gap = an empty field (shown only once the user is ready to submit); everything else is a mistake (shown at once)
+  const add = (level, group, msg, target, note, gap) => {
+    out.push({ level, group, msg, target, gap: !!gap });
     if (target && target.type === "product") {
       const k = target.i + ":" + target.f, cur = cells[k];
-      if (!cur || (cur.level === "warn" && level === "bad")) cells[k] = { level, note: note || "" };
-      else if (cur.level === level && note && !cur.note.includes(note)) cells[k].note += (cur.note ? " · " : "") + note;
+      if (!cur || (cur.level === "warn" && level === "bad")) cells[k] = { level, note: note || "", gap: !!gap };
+      else if (cur.level === level && note && !cur.note.includes(note)) { cells[k].note += (cur.note ? " · " : "") + note; if (!gap) cells[k].gap = false; }
     }
   };
+  const gap = (level, group, msg, target, note) => add(level, group, msg, target, note, true);
   const b = state.bundle, ps = state.products, pr = state.profile;
 
   // Bundle
-  REQ_BUNDLE.forEach(([k, label]) => { if (!String(b[k] || "").trim()) add("bad", "Bundle details", `${label} is empty.`, { type: "bundle", key: k }); });
-  b.tiers.forEach((v, j) => { if (!(Number(v) > 0)) add("bad", "Bundle details", `Tier ${j + 1} price is empty.`, { type: "tier", key: j }); });
+  REQ_BUNDLE.forEach(([k, label]) => { if (!String(b[k] || "").trim()) gap("bad", "Bundle details", `${label} is empty.`, { type: "bundle", key: k }); });
+  b.tiers.forEach((v, j) => { if (!(Number(v) > 0)) gap("bad", "Bundle details", `Tier ${j + 1} price is empty.`, { type: "tier", key: j }); });
   const t = b.tiers.map(Number);
   if (t.every(x => x > 0) && !(t[0] < t[1] && t[1] < t[2])) add("warn", "Bundle details", "Tier prices should go up from tier 1 to tier 3.", { type: "tier", key: 0 });
   if (b.launch && b.end && b.end <= b.launch) add("bad", "Bundle details", "Bundle end date is on or before the launch date.", { type: "bundle", key: "end" });
 
   // Courses: missing / invalid
-  if (!ps.length) add("bad", "Courses", "No courses yet. Paste them or click Add course.", null);
+  if (!ps.length) gap("bad", "Courses", "No courses yet. Paste them or click Add course.", null);
   ps.forEach((p, i) => {
     const r = shortName(p, i), T = f => ({ type: "product", i, f });
-    if (!p.name.trim()) add("bad", "Missing fields", `${r}: product name is empty.`, T("name"), "Required");
+    if (!p.name.trim()) gap("bad", "Missing fields", `${r}: product name is empty.`, T("name"), "Required");
     const ts = tierSet(p.tiers);
-    if (!ts.size) add("bad", "Missing fields", `${r}: no tier selected.`, T("tiers"), "Pick a tier");
+    if (!ts.size) gap("bad", "Missing fields", `${r}: no tier selected.`, T("tiers"), "Pick a tier");
     else if ((ts.has(1) && (!ts.has(2) || !ts.has(3))) || (ts.has(2) && !ts.has(3))) add("warn", "Courses", `${r}: tiers ${tierStr(ts)} skip a higher tier. Higher tiers normally include everything below.`, T("tiers"), "Skips a tier");
-    if (!p.link.trim()) add("bad", "Missing fields", `${r}: course link is empty.`, T("link"), "Required");
+    if (!p.link.trim()) gap("bad", "Missing fields", `${r}: course link is empty.`, T("link"), "Required");
     else if (!isUrl(p.link)) add("bad", "Courses", `${r}: course link doesn't look like a web address.`, T("link"), "Not a valid link");
-    if (String(p.price).trim() === "") add("bad", "Missing fields", `${r}: MSRP is empty.`, T("price"), "Required");
+    if (String(p.price).trim() === "") gap("bad", "Missing fields", `${r}: MSRP is empty.`, T("price"), "Required");
     else if (!(Number(p.price) > 0)) add("bad", "Courses", `${r}: MSRP must be a number above 0.`, T("price"), "Invalid");
-    if (!p.artwork.trim()) add("bad", "Missing fields", `${r}: artwork link is empty.`, T("artwork"), "Required");
+    if (!p.artwork.trim()) gap("bad", "Missing fields", `${r}: artwork link is empty.`, T("artwork"), "Required");
     else if (!isUrl(p.artwork)) add("bad", "Courses", `${r}: artwork link doesn't look like a web address.`, T("artwork"), "Not a valid link");
     const len = (p.description || "").trim().length;
-    if (!len) add("bad", "Missing fields", `${r}: description is empty.`, T("description"), "Required");
+    if (!len) gap("bad", "Missing fields", `${r}: description is empty.`, T("description"), "Required");
     else if (len < 300) add("warn", "Courses", `${r}: description is short (${len} characters).`, T("description"), "Short");
     else if (len > 1000) add("warn", "Courses", `${r}: description is long (${len} characters).`, T("description"), "Long");
     if (p.guessed) add("warn", "Courses", `${r}: title was made from the URL. Confirm it matches the course page.`, T("name"), "Title from URL, check it");
@@ -897,7 +910,7 @@ function computeIssues() {
       const rows = idx.map(i => i + 1);
       const label = field === "name" || field === "link" ? `“${ps[idx[0]].name || ps[idx[0]].link}”` : "";
       add("bad", "Duplicates", `Same ${what} on rows ${rows.join(", ")}${label ? ` ${label}` : ""}.`, { type: "product", i: idx[1], f: field }, null);
-      idx.forEach(i => { const others = rows.filter(x => x !== i + 1); const k = i + ":" + field; const note = `Duplicate of row ${others.join(", ")}`; if (!cells[k] || cells[k].level !== "bad" || cells[k].note === "") cells[k] = { level: "bad", note }; else if (!cells[k].note.includes("Duplicate")) cells[k].note += " · " + note; });
+      idx.forEach(i => { const others = rows.filter(x => x !== i + 1); const k = i + ":" + field; const note = `Duplicate of row ${others.join(", ")}`; if (!cells[k] || cells[k].level !== "bad" || cells[k].note === "") cells[k] = { level: "bad", note, gap: false }; else if (!cells[k].note.includes("Duplicate")) cells[k].note += " · " + note; });
     }
   };
   dupCheck("name", normName, "product name");
@@ -918,18 +931,18 @@ function computeIssues() {
   // Top 5 and tiers coverage
   const ranks = ps.map(p => Number(p.top5)).filter(Boolean);
   const want = Math.min(5, ps.length);
-  if (ps.length && ranks.length < want) add("warn", "Courses", `Top 5 products: ${ranks.length} of ${want} picked. Use the Top 5 column.`, ps.length ? { type: "product", i: 0, f: "top5" } : null);
-  [1, 2, 3].forEach(k => { if (ps.length && !ps.some(p => tierSet(p.tiers).has(k))) add("warn", "Courses", `Tier ${k} has no courses.`, null); });
+  if (ps.length && ranks.length < want) gap("warn", "Courses", `Top 5 products: ${ranks.length} of ${want} picked. Use the Top 5 column.`, ps.length ? { type: "product", i: 0, f: "top5" } : null);
+  [1, 2, 3].forEach(k => { if (ps.length && !ps.some(p => tierSet(p.tiers).has(k))) gap("warn", "Courses", `Tier ${k} has no courses.`, null); });
 
   // Profile: every field
-  PROFILE_FIELDS.forEach(([k, label]) => { if (!String(pr[k] || "").trim()) add("bad", "Publisher profile", `${label} is empty.`, { type: "profile", key: k }); });
+  PROFILE_FIELDS.forEach(([k, label]) => { if (!String(pr[k] || "").trim()) gap("bad", "Publisher profile", `${label} is empty.`, { type: "profile", key: k }); });
   ["redeemUrl", "iconUrl", "website"].forEach(k => { if (pr[k] && !isUrl(pr[k])) add("bad", "Publisher profile", `${PROFILE_FIELDS.find(f => f[0] === k)[1]} doesn't look like a web address.`, { type: "profile", key: k }); });
 
   // Links (from hover previews and "Check all links")
   linkIssues(add);
 
   // Marketing
-  if (!String(state.marketing.t1 || "").trim()) add("bad", "Marketing", "Tier 1 highlights are empty.", { type: "marketing", key: "t1" });
+  if (!String(state.marketing.t1 || "").trim()) gap("bad", "Marketing", "Tier 1 highlights are empty.", { type: "marketing", key: "t1" });
   return { issues: out, cells };
 }
 
@@ -949,8 +962,8 @@ function paintFlags(cells) {
     const len = (p.description || "").trim().length;
     const dc = cells[i + ":description"];
     const btn = tr.querySelector("[data-desc-toggle]");
-    btn.className = "desc-btn " + (dc ? dc.level : "ok");
-    btn.textContent = (len ? len + " chars" : "Missing") + (openDesc.has(i) ? " ▴" : " ▾");
+    btn.className = "desc-btn " + (dc ? dc.level : len ? "ok" : "");
+    btn.textContent = (len ? len + " chars" : dc ? "Missing" : "Add description") + (openDesc.has(i) ? " ▴" : " ▾");
     const ta = $("rows").querySelector(`tr.desc-row[data-i="${i}"] textarea`);
     if (ta) { ta.classList.toggle("missing", !!dc && dc.level === "bad"); ta.classList.toggle("warnf", !!dc && dc.level === "warn"); }
     tr.classList.toggle("has-bad", bad); tr.classList.toggle("has-warn", !bad && warn);
@@ -967,25 +980,57 @@ let lastIssues = [];
 function issueLi(x, idx, prefix) {
   return `<li class="${x.level}"><span class="pill">${x.level === "bad" ? "Fix" : "Check"}</span><span>${esc(x.msg)}</span>${x.target ? `<button type="button" class="go" data-go="${prefix}${idx}">Show</button>` : ""}</li>`;
 }
+// Empty fields stay quiet while the bundle is being filled in. They are listed once the user
+// clicks Download / Save to Drive, imports a sheet, or asks for them; then they stay on, live.
+let showGaps = false;
+function progressItems() {
+  const ps = state.products, n = ps.length;
+  const cnt = f => ps.filter(f).length;
+  const items = [
+    ["Courses", n, n, n > 0],
+    ["Names", cnt(p => p.name.trim()), n],
+    ["Tiers", cnt(p => tierSet(p.tiers).size), n],
+    ["Course links", cnt(p => p.link.trim()), n],
+    ["MSRP", cnt(p => String(p.price).trim() !== ""), n],
+    ["Artwork", cnt(p => p.artwork.trim()), n],
+    ["Descriptions", cnt(p => (p.description || "").trim()), n],
+    ["Top 5", Math.min(5, ps.map(p => Number(p.top5)).filter(Boolean).length), Math.min(5, n)],
+    ["Bundle details", REQ_BUNDLE.filter(([k]) => String(state.bundle[k] || "").trim()).length + state.bundle.tiers.filter(v => Number(v) > 0).length, REQ_BUNDLE.length + 3],
+    ["Publisher profile", PROFILE_FIELDS.filter(([k]) => String(state.profile[k] || "").trim()).length, PROFILE_FIELDS.length],
+    ["Tier 1 highlights", String(state.marketing.t1 || "").trim() ? 1 : 0, 1]
+  ];
+  return items.filter(x => x[0] === "Courses" || x[2] > 0).map(([label, done, total, flag]) => ({ label, done, total, ok: flag !== undefined ? flag : done >= total }));
+}
 function renderChecks() {
-  const { issues, cells } = computeIssues();
-  lastIssues = issues;
+  const all = computeIssues();
+  lastIssues = all.issues;
+  const issues = showGaps ? all.issues : all.issues.filter(x => !x.gap);
+  const cells = {};
+  Object.keys(all.cells).forEach(k => { if (showGaps || !all.cells[k].gap) cells[k] = all.cells[k]; });
+  const hiddenGaps = showGaps ? 0 : all.issues.filter(x => x.gap && x.level === "bad").length;
   // mark non-course fields
   paintFlags(cells);
   issues.forEach(x => { const el = targetEl(x.target, false); if (el && x.target.type !== "product") el.classList.add(x.level === "bad" ? "missing" : "warnf"); });
   const nb = issues.filter(x => x.level === "bad").length, nw = issues.length - nb;
   const nDup = issues.filter(x => x.group === "Duplicates").length;
-  $("checkCounts").innerHTML = issues.length
+  const toggle = showGaps
+    ? `<button type="button" class="linkish" id="gapsToggle">Hide empty fields until download</button>`
+    : (hiddenGaps ? `<button type="button" class="linkish" id="gapsToggle">Show what's missing (${hiddenGaps})</button>` : "");
+  $("checkCounts").innerHTML = (issues.length
     ? `${nb ? `<span class="count-pill bad">${nb} to fix</span>` : ""}${nw ? `<span class="count-pill warn">${nw} to check</span>` : ""}${nDup ? `<span class="count-pill bad">${nDup} duplicate${nDup > 1 ? "s" : ""}</span>` : ""}`
-    : `<span class="count-pill ok">All fields filled, no duplicates</span>`;
-  if (!issues.length) $("issues").innerHTML = `<p class="all-good" style="margin:0">Every field is filled in and nothing is duplicated. Ready to download.</p>`;
+    : (hiddenGaps ? `<span class="count-pill ok">No mistakes so far</span>` : `<span class="count-pill ok">All fields filled, no duplicates</span>`)) + toggle;
+  const indexed = lastIssues.map((x, k) => [x, k]).filter(([x]) => showGaps || !x.gap);
+  const progress = showGaps ? "" : `<div class="progress-box"><div class="progress-chips">${progressItems().map(it => `<span class="pchip${it.ok ? " done" : ""}">${it.ok ? "✓ " : ""}${esc(it.label)} <b>${it.label === "Courses" ? it.done : `${it.done}/${it.total}`}</b></span>`).join("")}</div>
+    <p class="muted" style="margin:0;font-size:12.5px">${hiddenGaps ? `Empty fields are listed when you click <strong>Download</strong> or <strong>Save to Drive</strong>. ` : ""}Duplicates and broken links show here straight away.</p></div>`;
+  if (!issues.length) $("issues").innerHTML = progress + (showGaps || !hiddenGaps ? `<p class="all-good" style="margin:0">Every field is filled in and nothing is duplicated. Ready to download.</p>` : "");
   else {
-    const groups = GROUP_ORDER.map(g => [g, issues.map((x, k) => [x, k]).filter(([x]) => x.group === g)]).filter(([, l]) => l.length);
+    const groups = GROUP_ORDER.map(g => [g, indexed.filter(([x]) => x.group === g)]).filter(([, l]) => l.length);
     $("issues").innerHTML = groups.map(([g, list]) => {
       const LIMIT = 12, more = list.length - LIMIT;
       const items = list.slice(0, expanded.has(g) ? list.length : LIMIT).map(([x, k]) => issueLi(x, k, "")).join("");
       return `<div class="issue-group"><h3>${g} (${list.length})</h3><ul class="issues">${items}</ul>${more > 0 ? `<button type="button" class="btn small" data-expand="${esc(g)}" style="justify-self:start">${expanded.has(g) ? "Show fewer" : `Show all ${list.length}`}</button>` : ""}</div>`;
     }).join("");
+    if (progress) $("issues").innerHTML = progress + $("issues").innerHTML;
   }
   // import problems
   const ip = state.importProblems || [];
@@ -1003,7 +1048,13 @@ function renderChecks() {
     const value = inT.reduce((a, p) => a + (Number(p.price) || 0), 0);
     html += tile(`Tier ${k} · $${esc(tiers[k - 1] || "?")}`, `${inT.length} courses`, `$${value.toLocaleString()} MSRP value`);
   });
-  html += tile("Ready to submit?", nb ? `${nb} to fix` : (nw ? "Almost" : "Yes"), `${nDup ? nDup + " duplicate" + (nDup > 1 ? "s" : "") + " · " : ""}${nw} to check`, "status" + (nb ? " has-bad" : nw ? " has-warn" : ""));
+  if (showGaps || !hiddenGaps) {
+    html += tile("Ready to submit?", nb ? `${nb} to fix` : (nw ? "Almost" : "Yes"), `${nDup ? nDup + " duplicate" + (nDup > 1 ? "s" : "") + " · " : ""}${nw} to check`, "status" + (nb ? " has-bad" : nw ? " has-warn" : ""));
+  } else {
+    const pi = progressItems().filter(x => x.label !== "Courses");
+    const pct = Math.round(100 * pi.reduce((a, x) => a + Math.min(x.done, x.total), 0) / Math.max(1, pi.reduce((a, x) => a + x.total, 0)));
+    html += tile("Filling in", nb ? `${nb} to fix` : `${pct}% done`, nb ? "Mistakes to fix now" : "Missing fields listed at download", "status" + (nb ? " has-bad" : " in-progress"));
+  }
   $("summary").innerHTML = html;
 }
 const expanded = new Set();
@@ -1013,6 +1064,7 @@ $("issues").addEventListener("click", e => {
   const go = e.target.closest("[data-go]"); if (go) goTo(lastIssues[+go.dataset.go].target);
 });
 $("onlyProblems").onchange = () => renderChecks();
+$("checkCounts").addEventListener("click", e => { if (e.target.id === "gapsToggle") { showGaps = !showGaps; renderChecks(); } });
 
 function targetEl(tg, prepare) {
   if (!tg) return null;
@@ -1038,7 +1090,7 @@ function goTo(tg) {
   setTimeout(() => { el.focus({ preventScroll: true }); el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); }, 250);
 }
 
-function refresh() { renderChecks(); saveDraft(); }
+function refresh() { renderChecks(); renderTierMeta(); saveDraft(); }
 function renderAll() { renderStatic(); renderRows(); refresh(); }
 
 // ---------- events: bundle / marketing / profile ----------
@@ -1171,7 +1223,7 @@ $("newBtn").onclick = () => {
   if ($("newBtn").dataset.confirm !== "1") { $("newBtn").dataset.confirm = "1"; $("newBtn").textContent = "Click again to clear courses"; setTimeout(() => { $("newBtn").dataset.confirm = ""; $("newBtn").textContent = "Start new bundle"; }, 3500); return; }
   $("newBtn").dataset.confirm = ""; $("newBtn").textContent = "Start new bundle";
   state = { bundle: { tiers: state.bundle.tiers.slice() }, profile: state.profile, marketing: {}, products: [] };
-  normalise(state); openDesc.clear(); renderAll(); toast("New bundle started. Your publisher profile was kept.");
+  normalise(state); openDesc.clear(); showGaps = false; renderAll(); toast("New bundle started. Your publisher profile was kept.");
 };
 $("importFile").onchange = async e => {
   const f = e.target.files[0]; e.target.value = ""; if (!f) return;
@@ -1180,7 +1232,7 @@ $("importFile").onchange = async e => {
     const got = hsbReadWorkbook(wb);
     got.profile.name = got.profile.publisher || state.profile.name || "";
     got.importProblems = got.problems || []; got.importFile = f.name; delete got.problems;
-    state = got; normalise(state); openDesc.clear(); renderAll();
+    state = got; normalise(state); openDesc.clear(); showGaps = true; renderAll();
     const nb = lastIssues.filter(x => x.level === "bad").length;
     toast(`Imported ${state.products.length} courses from ${f.name}. ${state.importProblems.length} problem${state.importProblems.length === 1 ? "" : "s"} in the file, ${nb} field${nb === 1 ? "" : "s"} to fix.`, 6000);
     $("checksCard").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1224,6 +1276,7 @@ async function doSaveDrive() {
 }
 function guardThen(action) {
   pendingAction = action;
+  showGaps = true;            // the user says "I'm done": list everything from now on
   renderChecks();
   const bad = lastIssues.map((x, k) => [x, k]).filter(([x]) => x.level === "bad");
   if (!bad.length) return action === "drive" ? doSaveDrive() : doDownload();
@@ -1485,17 +1538,70 @@ async function aiDescriptions(indices, force) {
   finally { btn.disabled = false; btn.textContent = "Write missing descriptions with AI"; }
 }
 $("aiDescBtn").onclick = () => aiDescriptions(null, false);
+function tierInfo(k) {
+  const inTier = state.products.filter(p => p.name && tierSet(p.tiers).has(k));
+  const below = k > 1 ? new Set(state.products.filter(p => tierSet(p.tiers).has(k - 1)).map(p => p.name)) : new Set();
+  return {
+    tier: k, price: state.bundle.tiers[k - 1] || "",
+    names: inTier.map(p => p.name),
+    added: k > 1 ? inTier.filter(p => !below.has(p.name)).map(p => p.name) : [],
+    value: inTier.reduce((a, p) => a + (Number(p.price) || 0), 0)
+  };
+}
+function renderTierMeta() {
+  [1, 2, 3].forEach(k => {
+    const el = $("mm" + k); if (!el) return;
+    const ti = tierInfo(k);
+    const total = state.products.filter(p => p.name).length;
+    el.textContent = `$${ti.price || "?"} · ${ti.names.length} course${ti.names.length === 1 ? "" : "s"}` + (k === 1 ? ` · overview of all ${total}` : (ti.added.length ? ` (+${ti.added.length} new)` : ""));
+  });
+}
+const tierBtnLabel = "Write with AI";
+async function aiHighlights(k, btn) {
+  if (!cfg.aiEnabled) { toast(aiOffMsg(), 8000); return false; }
+  const ti = tierInfo(k);
+  if (!ti.names.length) { toast(`Tier ${k} has no courses yet. Set tiers in the Courses list first.`, 5000); return false; }
+  if (btn) { btn.disabled = true; btn.innerHTML = `<span class="spin"></span> Writing`; }
+  try {
+    const all = state.products.map(p => p.name).filter(Boolean);
+    const payload = {
+      brand: state.profile.publisher || "the provider", title: state.bundle.title,
+      tier: k, price: ti.price, count: ti.names.length, value: ti.value,
+      totalCourses: all.length, added: ti.added,
+      // Tier 1 is the whole-bundle overview; older back ends read only "names"
+      names: k === 1 ? all : ti.names
+    };
+    const res = await api.writeHighlights(payload);
+    const text = typeof res === "string" ? res : (res && res.text) || "";
+    state.marketing["t" + k] = String(text).trim(); $("m" + k).value = state.marketing["t" + k]; refresh();
+    return res && res.provider ? res.provider : true;
+  } catch (err) { toast(`AI couldn't write tier ${k}: ` + errMsg(err), 8000); return false; }
+  finally { if (btn) { btn.disabled = false; btn.textContent = tierBtnLabel; } }
+}
+document.addEventListener("click", async e => {
+  const btn = e.target.closest("[data-ai-tier]"); if (!btn) return;
+  const k = +btn.dataset.aiTier;
+  if (String(state.marketing["t" + k] || "").trim() && btn.dataset.confirm !== "1") {
+    btn.dataset.confirm = "1"; btn.textContent = "Click again to replace";
+    setTimeout(() => { if (btn.dataset.confirm === "1") { btn.dataset.confirm = ""; btn.textContent = tierBtnLabel; } }, 3500);
+    return;
+  }
+  btn.dataset.confirm = "";
+  const ok = await aiHighlights(k, btn);
+  if (ok) toast(`Tier ${k} highlights ready${typeof ok === "string" ? " (" + ok + ")" : ""}. Edit them to taste.`);
+});
 $("aiMktBtn").onclick = async () => {
   if (!cfg.aiEnabled) return toast(aiOffMsg(), 8000);
-  const btn = $("aiMktBtn");
-  if (state.marketing.t1.trim() && btn.dataset.confirm !== "1") { btn.dataset.confirm = "1"; btn.textContent = "Click again to replace current text"; setTimeout(() => { btn.dataset.confirm = ""; btn.textContent = "Draft tier 1 highlights with AI"; }, 3500); return; }
-  btn.dataset.confirm = ""; btn.disabled = true; btn.innerHTML = `<span class="spin"></span> Drafting`;
-  try {
-    const res = await api.writeHighlights({ brand: state.profile.publisher || "the provider", title: state.bundle.title, names: state.products.map(p => p.name).filter(Boolean) });
-    const text = typeof res === "string" ? res : (res && res.text) || "";
-    state.marketing.t1 = String(text).trim(); $("m1").value = state.marketing.t1; refresh(); toast(`Draft ready${res && res.provider ? " (" + res.provider + ")" : ""}. Edit it to taste.`);
-  } catch (err) { toast("AI couldn't finish: " + errMsg(err), 8000); }
-  finally { btn.disabled = false; btn.textContent = "Draft tier 1 highlights with AI"; }
+  const todo = [1, 2, 3].filter(k => !String(state.marketing["t" + k] || "").trim() && tierInfo(k).names.length);
+  if (!todo.length) return toast("All tiers with courses already have highlights. Use a tier's own button to rewrite it.", 5000);
+  const btn = $("aiMktBtn"); btn.disabled = true;
+  let done = 0;
+  for (const k of todo) {
+    btn.innerHTML = `<span class="spin"></span> Writing tier ${k}`;
+    if (await aiHighlights(k, document.querySelector(`[data-ai-tier="${k}"]`))) done++;
+  }
+  btn.disabled = false; btn.textContent = "Write empty tiers with AI";
+  if (done) toast(`Wrote highlights for ${done} tier${done > 1 ? "s" : ""}. Edit them to taste.`);
 };
 
 // ---------- shared profiles ----------
@@ -1575,8 +1681,8 @@ $("unlockSkip").onclick = () => { $("unlockModal").hidden = true; conn.dismissed
 $("connectBtn").onclick = () => showUnlock("");
 
 function renderMode() {
-  $("verTag").textContent = "v4 · 18 Nov · " + (HAS_GAS ? "running in Apps Script" : "web version");
-  document.querySelectorAll("#aiDescBtn,#aiMktBtn").forEach(b => { b.classList.toggle("ai-off", !cfg.aiEnabled); b.title = cfg.aiEnabled ? "" : aiOffMsg(); });
+  $("verTag").textContent = "v5 · 18 Nov · " + (HAS_GAS ? "running in Apps Script" : "web version");
+  document.querySelectorAll("#aiDescBtn,#aiMktBtn,[data-ai-tier]").forEach(b => { b.classList.toggle("ai-off", !cfg.aiEnabled); b.title = cfg.aiEnabled ? "" : aiOffMsg(); });
   $("driveBtn").hidden = !api.backend;
   $("connectBtn").hidden = HAS_GAS;
   $("connectBtn").textContent = api.backend ? "Connected ✓" : "Connect";
