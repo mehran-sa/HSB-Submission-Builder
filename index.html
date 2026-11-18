@@ -1,374 +1,1578 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SA Invoice Generator</title>
-<meta name="application-name" content="SA Invoice Generator">
-<meta name="sa-app-version" content="2.10.1">
-<meta name="description" content="SA Invoice Generator: create, print and export invoices in your browser. All data stays on this device.">
-<!-- Local-only policy: scripts, styles, fonts and images load from this app or
-     from embedded data, and the page cannot send data to any server
-     (connect-src 'none'). Excel import uses the bundled js/vendor copy. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'">
-<link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
-<link rel="alternate icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HSB Submission Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@600;700;800&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Layout: sticky summary bar on top, then stacked work sections; courses table is the main surface. */
+  --green: #46b751;
+  --green-ink: #2f8a39;
+  --bg: #f6f8f6;
+  --surface: #ffffff;
+  --ink: #18221a;
+  --muted: #5d6b60;
+  --line: #dfe6e0;
+  --tint: #ecf7ed;
+  --warn: #b26a00;
+  --warn-bg: #fff4e0;
+  --bad: #c0392b;
+  --bad-bg: #fdecea;
+  --ok: #2f8a39;
+  --display: "Epilogue", "Segoe UI", system-ui, sans-serif;
+  --body: "Poppins", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --green: #5cc767; --green-ink: #7fd889; --bg: #111613; --surface: #1a211c; --ink: #e6ede7;
+    --muted: #9aa89d; --line: #2d382f; --tint: #1f3323; --warn: #f0b05a; --warn-bg: #3a2c12;
+    --bad: #ff8a7a; --bad-bg: #3b1d19; --ok: #7fd889; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --green: #5cc767; --green-ink: #7fd889; --bg: #111613; --surface: #1a211c; --ink: #e6ede7;
+  --muted: #9aa89d; --line: #2d382f; --tint: #1f3323; --warn: #f0b05a; --warn-bg: #3a2c12;
+  --bad: #ff8a7a; --bad-bg: #3b1d19; --ok: #7fd889; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--body); }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; }
+h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
+h2 { font-size: 17px; font-weight: 700; }
+a { color: var(--green-ink); }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
 
-<!-- Stylesheets load in cascade order: base -> layout -> components -> invoice
-     -> per-template overrides -> print. Template files are scoped to their own
-     .template-* class and must not affect one another. -->
-<link rel="stylesheet" href="css/base.css">
-<link rel="stylesheet" href="css/layout.css">
-<link rel="stylesheet" href="css/components.css">
-<link rel="stylesheet" href="css/bundles.css">
-<link rel="stylesheet" href="css/brand.css">
-<link rel="stylesheet" href="css/invoice.css">
-<link rel="stylesheet" href="css/templates/minimal.css">
-<link rel="stylesheet" href="css/templates/classic.css">
-<link rel="stylesheet" href="css/templates/royalty.css">
-<link rel="stylesheet" href="css/templates/ukhf.css">
-<link rel="stylesheet" href="css/templates/multipurpose.css">
-<link rel="stylesheet" href="css/print.css">
+.top { position: sticky; top: 0; z-index: 20; background: var(--surface); border-bottom: 1px solid var(--line); }
+.top-inner { max-width: 1280px; margin: 0 auto; padding: 12px 20px; display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; }
+.brand { display: flex; flex-direction: column; gap: 0; margin-right: auto; }
+.brand small { color: var(--muted); font-size: 12px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+.btn { border: 1px solid var(--line); background: var(--surface); padding: 7px 14px; border-radius: 8px; cursor: pointer; font-weight: 500; white-space: nowrap; }
+.btn:hover { border-color: var(--green); }
+.btn.primary { background: var(--green); border-color: var(--green); color: #fff; font-weight: 600; }
+.btn.primary:hover { filter: brightness(0.95); }
+.btn.small { padding: 4px 10px; font-size: 13px; }
+.btn.ghost { border-color: transparent; background: transparent; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.icon-btn { border: 0; background: transparent; cursor: pointer; padding: 4px 6px; border-radius: 6px; color: var(--muted); }
+.icon-btn:hover { background: var(--tint); color: var(--ink); }
+
+main { max-width: 1280px; margin: 0 auto; padding: 20px; display: grid; gap: 20px; }
+
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 2px; }
+.tile .k { font-size: 12px; color: var(--muted); }
+.tile .v { font-family: var(--display); font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.tile .s { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tile.status { border-left: 4px solid var(--ok); }
+.tile.status.has-bad { border-left-color: var(--bad); }
+.tile.status.has-warn { border-left-color: var(--warn); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+.card-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.card-head p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.card-body { padding: 16px 18px; display: grid; gap: 14px; }
+
+.grid { display: grid; gap: 12px 16px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.field { display: grid; gap: 4px; align-content: start; }
+.field label { font-size: 12px; font-weight: 500; color: var(--muted); }
+.field .hint { font-size: 11.5px; color: var(--muted); }
+input[type=text], input[type=url], input[type=number], input[type=date], input[type=email], select, textarea {
+  width: 100%; border: 1px solid var(--line); background: var(--bg); border-radius: 7px; padding: 7px 9px;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--green); outline: none; box-shadow: 0 0 0 3px var(--tint); }
+textarea { resize: vertical; min-height: 70px; line-height: 1.45; }
+.tier-prices { display: flex; gap: 8px; }
+.tier-prices .field { flex: 1; }
+
+details.card > summary { list-style: none; cursor: pointer; }
+details.card > summary::-webkit-details-marker { display: none; }
+details.card > summary .chev { transition: transform .15s; display: inline-block; }
+details.card[open] > summary .chev { transform: rotate(90deg); }
+details.card:not([open]) > summary { border-bottom: 0; }
+
+.paste { display: grid; gap: 8px; background: var(--tint); border-radius: 10px; padding: 12px 14px; }
+.paste textarea { min-height: 64px; background: var(--surface); font-size: 13px; }
+.paste-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.paste-row .hint { font-size: 12px; color: var(--muted); }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.toolbar .grp { display: flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+.toolbar input[type=number] { width: 64px; padding: 4px 6px; }
+
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; min-width: 1140px; }
+th { text-align: left; font-size: 11.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; padding: 8px; background: var(--bg); border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr.main-row td { padding-top: 8px; }
+tbody tr:last-child td { border-bottom: 0; }
+td input[type=text], td input[type=url], td input[type=number] { padding: 5px 7px; font-size: 13px; }
+td.num { width: 34px; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; padding-top: 13px; }
+td.top5 select { width: 58px; padding: 5px 4px; font-size: 13px; }
+.tiers { display: flex; gap: 3px; }
+.tier-chip { width: 26px; height: 28px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); cursor: pointer; font-weight: 600; font-size: 13px; color: var(--muted); }
+.tier-chip.on { background: var(--green); border-color: var(--green); color: #fff; }
+.desc-btn { display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 4px 10px; font-size: 12px; cursor: pointer; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.desc-btn.ok { border-color: color-mix(in srgb, var(--ok) 50%, var(--line)); color: var(--ok); }
+.desc-btn.warn { background: var(--warn-bg); border-color: transparent; color: var(--warn); }
+.desc-btn.bad { background: var(--bad-bg); border-color: transparent; color: var(--bad); }
+tr.desc-row td { background: var(--tint); }
+.desc-edit { display: grid; gap: 6px; }
+.desc-edit textarea { min-height: 120px; background: var(--surface); }
+.desc-meta { display: flex; gap: 10px; align-items: center; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+.row-actions { display: flex; gap: 0; white-space: nowrap; }
+.cell-note { font-size: 11px; line-height: 1.3; margin-top: 3px; }
+.cell-note:empty { display: none; }
+.cell-note.bad { color: var(--bad); }
+.cell-note.warn { color: var(--warn); }
+input.missing, select.missing, textarea.missing { border-color: var(--bad); background: var(--bad-bg); }
+input.warnf, textarea.warnf { border-color: var(--warn); background: var(--warn-bg); }
+tr.has-bad td.num { color: var(--bad); font-weight: 600; }
+tr.has-bad td.num::before { content: "●"; font-size: 9px; margin-right: 3px; vertical-align: 2px; }
+tr.has-warn td.num { color: var(--warn); font-weight: 600; }
+.tiers.missing .tier-chip { border-color: var(--bad); }
+
+.check-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.count-pill { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; }
+.count-pill.bad { background: var(--bad); color: #fff; }
+.count-pill.warn { background: var(--warn); color: #fff; }
+.count-pill.ok { background: var(--ok); color: #fff; }
+.issue-group { display: grid; gap: 6px; }
+.issue-group h3 { font-size: 13px; font-family: var(--body); font-weight: 600; color: var(--muted); }
+.issues { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.issues li { display: flex; gap: 10px; align-items: baseline; padding: 7px 10px; border-radius: 8px; font-size: 13px; }
+.issues li.bad { background: var(--bad-bg); }
+.issues li.warn { background: var(--warn-bg); }
+.issues li.info { background: var(--tint); }
+.issues li button.go { margin-left: auto; border: 0; background: transparent; color: var(--green-ink); font-weight: 600; cursor: pointer; font-size: 12px; white-space: nowrap; padding: 0 2px; }
+.issues li button.go:hover { text-decoration: underline; }
+.import-box { border: 1px solid var(--warn); border-radius: 10px; padding: 12px 14px; display: grid; gap: 8px; background: var(--surface); }
+.import-box .row { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.filter { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); cursor: pointer; }
+.flash { animation: flash 1.2s ease-out; }
+@keyframes flash { 0%, 40% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--bad) 45%, transparent); } 100% { box-shadow: none; } }
+
+.toast a { color: inherit; font-weight: 600; }
+.pv { position: fixed; z-index: 70; width: 320px; max-width: calc(100vw - 16px); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 36px rgba(0,0,0,.2); overflow: hidden; font-size: 13px; }
+.pv[hidden] { display: none; }
+.pv-load { padding: 14px; color: var(--muted); display: flex; gap: 8px; align-items: center; }
+.pv-img { background: repeating-conic-gradient(var(--bg) 0 25%, var(--surface) 0 50%) 0 0 / 16px 16px; display: grid; place-items: center; max-height: 280px; overflow: hidden; border-bottom: 1px solid var(--line); }
+.pv-img img { max-width: 100%; max-height: 280px; display: block; }
+.pv-img.empty { padding: 22px; color: var(--muted); font-size: 12px; }
+.pv-og { max-height: 150px; overflow: hidden; border-bottom: 1px solid var(--line); }
+.pv-og img { width: 100%; display: block; }
+.pv-body { padding: 10px 12px 12px; display: grid; gap: 6px; }
+.pv-body strong { font-size: 13.5px; line-height: 1.35; overflow-wrap: anywhere; }
+.pv-sub { font-size: 12px; color: var(--muted); }
+.pv-desc { font-size: 12px; color: var(--muted); line-height: 1.45; }
+.pv-url { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pv-pill { justify-self: start; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; line-height: 1.4; }
+.pv-pill.ok { background: var(--tint); color: var(--ok); }
+.pv-pill.warn { background: var(--warn-bg); color: var(--warn); }
+.pv-pill.bad { background: var(--bad-bg); color: var(--bad); }
+.pv-actions { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+.pv-actions a { font-weight: 600; font-size: 12.5px; }
+#modeNote { display: block; }
+.btn.connected { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); }
+.modal-back { position: fixed; inset: 0; background: rgba(10, 16, 12, .45); z-index: 60; display: grid; place-items: center; padding: 16px; }
+.modal-back[hidden] { display: none; }
+.modal { background: var(--surface); border-radius: 14px; max-width: 620px; width: 100%; max-height: 80vh; display: grid; grid-template-rows: auto 1fr auto; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+.modal header, .modal footer { padding: 16px 18px; }
+.modal header p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.modal .body { overflow: auto; padding: 0 18px; }
+.modal footer { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; border-top: 1px solid var(--line); }
+.pill { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; padding: 1px 7px; border-radius: 999px; flex: none; }
+.bad .pill { background: var(--bad); color: #fff; }
+.warn .pill { background: var(--warn); color: #fff; }
+.all-good { color: var(--ok); font-weight: 500; }
+
+.profile-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+.profile-bar .field { min-width: 200px; }
+.wide { grid-column: 1 / -1; }
+
+.toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--surface); padding: 10px 16px; border-radius: 9px; font-size: 13px; z-index: 50; max-width: min(560px, 92vw); box-shadow: 0 6px 24px rgba(0,0,0,.18); }
+.toast[hidden] { display: none; }
+.muted { color: var(--muted); }
+.ai-only[hidden] { display: none !important; }
+.link-cell { display: flex; gap: 4px; align-items: center; }
+.link-cell input { flex: 1; min-width: 0; }
+a.open-link { flex: none; display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--line); color: var(--green-ink); text-decoration: none; font-size: 14px; background: var(--surface); }
+a.open-link:hover { border-color: var(--green); background: var(--tint); }
+a.open-link[hidden] { display: none; }
+.ai-help { font-size: 12px; color: var(--muted); margin: 0; }
+.ai-source { min-height: 70px !important; font-size: 13px; }
+.ai-off { opacity: .75; }
+.spin { display: inline-block; width: 12px; height: 12px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: sp .8s linear infinite; vertical-align: -2px; }
+@keyframes sp { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; } details.card > summary .chev { transition: none; } }
+@media (max-width: 520px) { .top-inner, main { padding-left: 16px; padding-right: 16px; } .tier-prices { flex-wrap: wrap; } }
+</style>
 </head>
 <body>
-<!-- Shown until js/app.js starts and removes it. If the scripts cannot run
-     (most often because index.html was opened directly from disk, where
-     browsers block JavaScript modules), the user sees why instead of an editor
-     whose buttons do nothing. -->
-<div class="boot-error" id="bootError" role="alert">
-  <strong>SA Invoice Generator could not start.</strong>
-  If you opened <code>index.html</code> directly from disk, open <code>SA-Invoice-Generator.html</code> instead,
-  or run <code>python3 serve.py</code> in this folder.
-  If you have just updated the app, reload with Ctrl+Shift+R (Cmd+Shift+R on a Mac).
-  See README.md for details.
-</div>
-<div class="app" id="appRoot">
-<aside class="sidebar" id="sidebar">
-  <div class="brand-band" aria-hidden="true"></div>
-  <div class="topbar">
+<header class="top">
+  <div class="top-inner">
     <div class="brand">
-      <span class="brand-logo" role="img" aria-label="StaffAsia"><svg aria-hidden="true" focusable="false" viewBox="0 0 203 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M-3.05176e-05 23.2452H17.2861L26.5984 33.3706C27.0109 33.848 27.7308 33.9022 28.2084 33.4827L58.4609 6.90701H62.5454L28.8451 47.21C28.0311 48.1827 26.5659 48.2695 25.6397 47.4016L-3.05176e-05 23.2452Z" fill="url(#paint0_linear_87_1345)"></path><path d="M37.1409 16.613V23.1258L35.3971 24.6555L28.2048 30.9731C27.7308 31.3926 27.0073 31.3383 26.5948 30.861L20.4806 24.2107L18.281 21.8204V16.613C18.281 14.6024 19.5509 12.8919 21.3308 12.2265C21.8373 12.0421 22.3836 11.9372 22.9553 11.9372H25.0391V10.2737C23.4437 9.3516 22.3692 7.63027 22.3692 5.65219C22.3692 2.70134 24.7606 0.311005 27.7127 0.311005C30.6649 0.311005 33.0563 2.70134 33.0563 5.65219C33.0563 7.62665 31.9782 9.34798 30.3863 10.2737V11.9372H32.4666C33.0382 11.9372 33.5881 12.0421 34.0946 12.2265C35.871 12.8883 37.1409 14.6024 37.1409 16.613Z" fill="#1A1A1A"></path><path d="M21.1789 11.308C20.828 11.3658 20.4879 11.4562 20.1623 11.5756C18.0603 12.3603 16.5589 14.3854 16.5589 16.7613V20.7319H7.05841V12.335C7.05841 10.3822 8.64303 8.7983 10.5967 8.7983H12.1704V7.53985C10.9621 6.84192 10.1481 5.54008 10.1481 4.04295C10.1481 1.80812 11.957 0 14.1928 0C16.425 0 18.2376 1.80812 18.2376 4.04295C18.2376 5.54008 17.4199 6.84192 16.2152 7.53985V8.7983H17.7926C19.3917 8.7983 20.7411 9.85425 21.1789 11.308Z" fill="#1A1A1A"></path><path d="M48.3634 12.335V13.2644L38.863 21.607V16.7613C38.863 14.3818 37.3615 12.3603 35.2596 11.5756C34.9376 11.4562 34.5975 11.3658 34.243 11.308C34.6807 9.85425 36.0302 8.7983 37.6293 8.7983H39.203V7.53985C37.9947 6.84192 37.1806 5.54008 37.1806 4.04295C37.1806 1.80812 38.9896 0 41.2254 0C43.4576 0 45.2702 1.80812 45.2702 4.04295C45.2702 5.54008 44.4525 6.84192 43.2478 7.53985V8.7983H44.8252C46.7788 8.7983 48.3634 10.3822 48.3634 12.335Z" fill="#1A1A1A"></path><path d="M71.2727 25.3127L73.6613 22.5927C75.3147 24.1163 77.5348 25.1418 79.6832 25.1418C82.2834 25.1418 83.7144 24 83.7144 22.2581C83.7144 20.4218 82.2224 19.8327 80.1243 18.9709L76.9646 17.6436C74.6871 16.7272 72.2913 14.9854 72.2913 11.72C72.2913 8.15997 75.5443 5.42178 80.0526 5.42178C82.7533 5.42178 85.3679 6.50178 87.1791 8.26906L85.0738 10.7854C83.6033 9.57451 82.0324 8.86542 80.0526 8.86542C77.8612 8.86542 76.4338 9.85451 76.4338 11.4872C76.4338 13.2436 78.1948 13.8909 80.11 14.6509L83.2267 15.9163C85.9776 17.0218 87.9 18.7054 87.9 21.9418C87.9 25.5636 84.7904 28.5818 79.6007 28.5818C76.4768 28.5854 73.4641 27.4 71.2727 25.3127Z" fill="#46B751"></path><path d="M92.376 22.52V14.5236H89.9013V11.5709L92.5876 11.3927L93.0682 6.81454H96.4467V11.3927H100.873V14.5236H96.4467V22.5091C96.4467 24.4836 97.2393 25.4545 98.9071 25.4545C99.5025 25.4545 100.209 25.2618 100.718 25.0727L101.41 27.9709C100.464 28.2727 99.255 28.5855 97.8598 28.5855C93.8608 28.5855 92.376 26.1418 92.376 22.52Z" fill="#46B751"></path><path d="M103.595 23.6691C103.595 20.0764 106.676 18.2036 113.802 17.4655C113.745 15.6618 112.995 14.16 110.649 14.16C108.924 14.16 107.3 14.9127 105.772 15.8146L104.273 13.1891C106.181 12.0291 108.641 10.9891 111.399 10.9891C115.739 10.9891 117.876 13.5709 117.876 18.2436V28.1782H114.541L114.229 26.32H114.114C112.557 27.6036 110.779 28.5891 108.727 28.5891C105.689 28.5855 103.595 26.5927 103.595 23.6691ZM113.806 23.68V19.9091C109.096 20.4837 107.529 21.6727 107.529 23.3673C107.529 24.8509 108.576 25.4982 110.033 25.4982C111.442 25.4982 112.518 24.8291 113.806 23.68Z" fill="#46B751"></path><path d="M121.129 11.5745L123.676 11.3964H141.562V14.5273H121.129V11.5745ZM123.461 9.93453C123.461 6.47635 125.283 3.97817 129.468 3.97817C130.784 3.97817 132.029 4.24363 132.861 4.59272L132.083 7.5309C131.434 7.24362 130.809 7.10544 129.906 7.10544C128.464 7.10544 127.531 8.06181 127.531 9.94908V28.1782H123.461V9.93453ZM134.095 9.66181C134.095 6.18544 135.748 3.63635 139.848 3.63635C141.106 3.63635 142.251 3.92362 143.029 4.22544L142.251 7.16363C141.626 6.90544 140.963 6.76726 140.371 6.76726C138.929 6.76726 138.165 7.64726 138.165 9.59635V28.1818H134.095V9.66181Z" fill="#46B751"></path><path d="M149.492 5.8327H154.298L161.833 28.1745H157.493L153.971 16.2872C153.236 13.9236 152.558 11.3745 151.88 8.92361H151.741C151.106 11.3963 150.424 13.9236 149.689 16.2872L146.138 28.1745H141.953L149.492 5.8327ZM146.407 19.0145H157.296V22.1236H146.407V19.0145Z" fill="#1A1A1A"></path><path d="M162.611 26.2509L164.505 23.7491C166.047 24.9091 167.539 25.6218 169.297 25.6218C171.19 25.6218 172.083 24.76 172.083 23.6146C172.083 22.2073 170.204 21.5782 168.35 20.8946C166.072 20.0691 163.472 18.8037 163.472 16.0037C163.472 13.0946 165.904 10.9891 169.792 10.9891C172.209 10.9891 174.146 11.9382 175.559 12.9964L173.694 15.4146C172.478 14.5527 171.255 13.9527 169.888 13.9527C168.142 13.9527 167.317 14.76 167.317 15.8109C167.317 17.1382 169.071 17.6437 170.95 18.3127C173.296 19.16 175.928 20.2546 175.928 23.3818C175.928 26.2655 173.568 28.5891 169.186 28.5891C166.811 28.5855 164.308 27.6037 162.611 26.2509Z" fill="#1A1A1A"></path><path d="M179.106 6.22909C179.106 4.90181 180.182 4.00363 181.624 4.00363C183.065 4.00363 184.141 4.90545 184.141 6.22909C184.141 7.52727 183.065 8.45818 181.624 8.45818C180.182 8.45818 179.106 7.52727 179.106 6.22909ZM179.572 11.3964H183.643V28.1782H179.572V11.3964Z" fill="#1A1A1A"></path><path d="M187.9 23.6691C187.9 20.0764 190.981 18.2036 198.107 17.4655C198.05 15.6618 197.3 14.16 194.955 14.16C193.23 14.16 191.605 14.9127 190.077 15.8146L188.578 13.1891C190.486 12.0291 192.946 10.9891 195.704 10.9891C200.044 10.9891 202.182 13.5709 202.182 18.2436V28.1782H198.846L198.534 26.32H198.419C196.863 27.6036 195.084 28.5891 193.032 28.5891C189.991 28.5855 187.9 26.5927 187.9 23.6691ZM198.107 23.68V19.9091C193.398 20.4837 191.831 21.6727 191.831 23.3673C191.831 24.8509 192.878 25.4982 194.334 25.4982C195.748 25.4982 196.82 24.8291 198.107 23.68Z" fill="#1A1A1A"></path><path d="M72.0527 40.04V37.6037H71.2727V36.7055L72.1186 36.6509L72.2688 35.2546H73.3344V36.6509H74.7296V37.6037H73.3344V40.04C73.3344 40.6437 73.5834 40.9382 74.1107 40.9382C74.2975 40.9382 74.5209 40.88 74.682 40.8218L74.9017 41.7055C74.6015 41.7964 74.2206 41.8946 73.7812 41.8946C72.5214 41.8873 72.0527 41.1419 72.0527 40.04Z" fill="#1A1A1A"></path><path d="M79.428 39.2109C79.428 37.5055 80.6657 36.5237 82.0317 36.5237C83.3976 36.5237 84.6353 37.5055 84.6353 39.2109C84.6353 40.9055 83.3976 41.8909 82.0317 41.8909C80.6694 41.8873 79.428 40.9055 79.428 39.2109ZM83.317 39.2109C83.317 38.1855 82.8336 37.5018 82.0317 37.5018C81.2297 37.5018 80.7463 38.1855 80.7463 39.2109C80.7463 40.2364 81.226 40.9091 82.0317 40.9091C82.8373 40.9091 83.317 40.2364 83.317 39.2109Z" fill="#1A1A1A"></path><path d="M89.4399 42.6909C89.4399 42.2582 89.7255 41.8836 90.2309 41.6V41.56C89.9489 41.3891 89.7365 41.12 89.7365 40.7055C89.7365 40.3091 90.0258 39.96 90.3444 39.7527V39.7091C89.9709 39.4509 89.623 38.9637 89.623 38.36C89.623 37.1855 90.641 36.5237 91.7872 36.5237C92.0912 36.5237 92.3768 36.5746 92.6002 36.6473H94.5593V37.5382H93.5596C93.7391 37.7309 93.8709 38.0473 93.8709 38.3964C93.8709 39.5346 92.9481 40.1418 91.7872 40.1418C91.5565 40.1418 91.2928 40.0946 91.0475 40.0073C90.8827 40.1382 90.7802 40.2691 90.7802 40.4982C90.7802 40.7855 91.0035 40.96 91.6664 40.96H92.6405C93.9478 40.96 94.6436 41.3382 94.6436 42.2218C94.6436 43.2291 93.512 44.0255 91.7213 44.0255C90.4103 44.0255 89.4399 43.5891 89.4399 42.6909ZM93.3985 42.4182C93.3985 42.0218 93.0579 41.9055 92.4317 41.9055H91.681C91.3881 41.9055 91.15 41.8837 90.9413 41.8327C90.6483 42.04 90.5165 42.2691 90.5165 42.5091C90.5165 42.9746 91.0512 43.2473 91.9117 43.2473C92.7979 43.2473 93.3985 42.8582 93.3985 42.4182ZM92.732 38.36C92.732 37.72 92.3182 37.3527 91.7836 37.3527C91.2489 37.3527 90.8351 37.7164 90.8351 38.36C90.8351 39.0109 91.2599 39.3891 91.7836 39.3891C92.3072 39.3891 92.732 39.0109 92.732 38.36Z" fill="#1A1A1A"></path><path d="M99.1552 39.2109C99.1552 37.5491 100.389 36.5237 101.678 36.5237C103.158 36.5237 103.938 37.5236 103.938 38.9527C103.938 39.1818 103.912 39.4109 103.883 39.5346H100.408C100.514 40.4437 101.14 40.96 102.022 40.96C102.491 40.96 102.894 40.8218 103.293 40.5891L103.729 41.3346C103.209 41.6618 102.546 41.8873 101.85 41.8873C100.342 41.8873 99.1552 40.8982 99.1552 39.2109ZM102.828 38.7164C102.828 37.9273 102.455 37.4509 101.704 37.4509C101.067 37.4509 100.503 37.8982 100.393 38.7164H102.828Z" fill="#1A1A1A"></path><path d="M109.262 40.04V37.6037H108.482V36.7055L109.328 36.6509L109.478 35.2546H110.544V36.6509H111.939V37.6037H110.544V40.04C110.544 40.6437 110.793 40.9382 111.32 40.9382C111.507 40.9382 111.73 40.88 111.892 40.8218L112.111 41.7055C111.811 41.7964 111.43 41.8946 110.991 41.8946C109.731 41.8873 109.262 41.1419 109.262 40.04Z" fill="#1A1A1A"></path><path d="M117 34.4073H118.285V36.3127L118.231 37.2982C118.688 36.8946 119.234 36.5237 119.985 36.5237C121.156 36.5237 121.669 37.2655 121.669 38.5564V41.7637H120.384V38.7091C120.384 37.8691 120.124 37.5527 119.531 37.5527C119.047 37.5527 118.732 37.7746 118.282 38.1891V41.7637H116.996V34.4073H117Z" fill="#1A1A1A"></path><path d="M126.763 39.2109C126.763 37.5491 127.997 36.5237 129.286 36.5237C130.766 36.5237 131.546 37.5236 131.546 38.9527C131.546 39.1818 131.52 39.4109 131.491 39.5346H128.015C128.122 40.4437 128.748 40.96 129.63 40.96C130.099 40.96 130.502 40.8218 130.901 40.5891L131.337 41.3346C130.817 41.6618 130.154 41.8873 129.458 41.8873C127.946 41.8873 126.763 40.8982 126.763 39.2109ZM130.436 38.7164C130.436 37.9273 130.062 37.4509 129.312 37.4509C128.675 37.4509 128.111 37.8982 128.001 38.7164H130.436Z" fill="#1A1A1A"></path><path d="M136.68 36.6473H137.731L137.83 37.56H137.866C138.258 36.8946 138.837 36.5237 139.422 36.5237C139.701 36.5237 139.877 36.5564 140.041 36.6291L139.818 37.6691C139.628 37.6182 139.485 37.5855 139.258 37.5855C138.822 37.5855 138.295 37.8655 137.965 38.6437V41.7637H136.68V36.6473Z" fill="#1A1A1A"></path><path d="M150.324 36.6473H151.613L152.276 39.3019C152.382 39.7964 152.463 40.2764 152.562 40.7782H152.606C152.712 40.2764 152.818 39.7855 152.954 39.3019L153.671 36.6473H154.836L155.568 39.3019C155.704 39.7964 155.81 40.2764 155.931 40.7782H155.975C156.081 40.2764 156.161 39.8 156.268 39.3019L156.923 36.6473H158.124L156.736 41.7637H155.213L154.572 39.3782C154.455 38.8982 154.36 38.4291 154.243 37.8946H154.199C154.092 38.4291 153.997 38.9091 153.873 39.3891L153.254 41.7673H151.774L150.324 36.6473Z" fill="#1A1A1A"></path><path d="M162.753 39.2109C162.753 37.5491 163.987 36.5237 165.276 36.5237C166.756 36.5237 167.536 37.5236 167.536 38.9527C167.536 39.1818 167.51 39.4109 167.481 39.5346H164.005C164.112 40.4437 164.738 40.96 165.62 40.96C166.089 40.96 166.492 40.8218 166.891 40.5891L167.327 41.3346C166.807 41.6618 166.144 41.8873 165.448 41.8873C163.94 41.8873 162.753 40.8982 162.753 39.2109ZM166.43 38.7164C166.43 37.9273 166.056 37.4509 165.305 37.4509C164.668 37.4509 164.104 37.8982 163.994 38.7164H166.43Z" fill="#1A1A1A"></path><path d="M178.441 39.2109C178.441 37.5055 179.73 36.5237 181.188 36.5237C181.883 36.5237 182.392 36.7746 182.788 37.0982L182.162 37.8764C181.872 37.64 181.594 37.5018 181.253 37.5018C180.371 37.5018 179.759 38.1855 179.759 39.2109C179.759 40.2364 180.36 40.9091 181.213 40.9091C181.642 40.9091 182.033 40.7127 182.345 40.4691L182.865 41.2618C182.352 41.6873 181.7 41.8909 181.078 41.8909C179.587 41.8873 178.441 40.9055 178.441 39.2109Z" fill="#1A1A1A"></path><path d="M187.563 40.3891C187.563 39.2946 188.534 38.7236 190.782 38.4982C190.764 37.9491 190.529 37.4909 189.79 37.4909C189.244 37.4909 188.731 37.72 188.252 37.9964L187.779 37.1964C188.38 36.8437 189.156 36.5273 190.028 36.5273C191.397 36.5273 192.071 37.3164 192.071 38.7382V41.7673H191.02L190.921 41.2H190.885C190.394 41.5927 189.834 41.8909 189.185 41.8909C188.222 41.8873 187.563 41.28 187.563 40.3891ZM190.782 40.3927V39.2436C189.299 39.4182 188.801 39.7818 188.801 40.2982C188.801 40.7491 189.13 40.9491 189.592 40.9491C190.039 40.9455 190.376 40.7418 190.782 40.3927Z" fill="#1A1A1A"></path><path d="M197.513 36.6473H198.564L198.663 37.3382H198.699C199.19 36.8909 199.747 36.52 200.497 36.52C201.669 36.52 202.182 37.2618 202.182 38.5527V41.76H200.896V38.7055C200.896 37.8655 200.636 37.5491 200.043 37.5491C199.56 37.5491 199.245 37.7709 198.794 38.1855V41.76H197.509V36.6473H197.513Z" fill="#1A1A1A"></path><defs><linearGradient id="paint0_linear_87_1345" x1="51.9063" y1="-0.7529" x2="-16.5891" y2="65.0726" gradientUnits="userSpaceOnUse"><stop offset="0.3728" stop-color="#46B751"></stop><stop offset="0.9983" stop-color="#465C5C"></stop></linearGradient></defs></svg></span>
-      <div class="brand-title"><h1>SA Invoice Generator</h1><p>Templates, columns and royalty imports.<span class="resize-hint"> Drag the right edge to resize.</span></p></div>
+      <h1>HSB Submission Builder</h1>
+      <small>Fill once, download the Humble Bundle sheet in the exact 3-tab format. <span id="modeNote"></span></small>
     </div>
-    <div class="save-state" id="saveState" aria-live="off"><span class="save-dot" aria-hidden="true"></span><span id="saveStateText">Saved</span></div>
+    <div class="actions">
+      <label class="btn" for="importFile" title="Load a sheet you submitted before and reuse it">Import a previous sheet</label>
+      <input id="importFile" type="file" accept=".xlsx" hidden>
+      <button class="btn" id="newBtn" type="button">Start new bundle</button>
+      <button class="btn" id="connectBtn" type="button" title="Connect to the team back end">Connect</button>
+      <button class="btn" id="driveBtn" type="button" hidden>Save to Drive</button>
+      <button class="btn primary" id="downloadBtn" type="button">Download .xlsx</button>
+    </div>
   </div>
-<div class="sidebar-sticky">
-  <div class="actions">
-    <button class="btn icon-btn" id="undoBtn" disabled title="Undo the last invoice change (Ctrl/Cmd + Z)" aria-keyshortcuts="Control+Z Meta+Z"><svg aria-hidden="true" focusable="false" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square" stroke-linejoin="miter"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span class="sr-only">Undo</span></button>
-    <button class="btn icon-btn" id="redoBtn" disabled title="Redo (Ctrl/Cmd + Y or Ctrl/Cmd + Shift + Z)" aria-keyshortcuts="Control+Y Meta+Y Control+Shift+Z Meta+Shift+Z"><svg aria-hidden="true" focusable="false" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="square" stroke-linejoin="miter"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg><span class="sr-only">Redo</span></button>
-    <button class="btn primary" id="pdfBtn" title="Opens the browser print dialog for an A4 invoice. Choose Save as PDF.">Export PDF</button>
-    <button class="btn" id="resetBtn" type="button" title="Start the next invoice: keeps your company details and design, clears the client and items, and uses the next unused number. The current invoice stays in Saved invoices.">New invoice</button>
-    <div class="menu-wrap">
-      <button class="btn" id="moreBtn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="moreMenu">More <span aria-hidden="true">&#9662;</span></button>
-      <div class="menu" id="moreMenu" role="menu" aria-labelledby="moreBtn" hidden>
-        <button class="menu-item" id="printBtn" type="button" role="menuitem" title="Prints only the invoice, never the editor.">Print</button>
-        <button class="menu-item" id="exportBtn" type="button" role="menuitem" title="Saves this invoice as a file you can import later or on another device.">Export JSON (this invoice)</button>
-        <button class="menu-item" id="importBtn" type="button" role="menuitem" title="Opens an exported invoice file as a new saved invoice.">Import JSON as new invoice</button>
-        <div class="menu-sep" role="separator"></div>
-        <button class="menu-item" id="resetTextBtn" type="button" role="menuitem" title="Clears the text in this invoice. Amounts, saved templates and brands are kept.">Reset text</button>
-      </div>
-    </div>
-    <input type="file" id="jsonFile" class="hidden" accept=".json">
-  </div>
-  <nav class="tabs" role="tablist" aria-label="Editor">
-    <button class="tab active" type="button" role="tab" id="tabbtn-invoice" data-tab="invoice" aria-controls="tab-invoice" aria-selected="true">Invoice</button>
-    <button class="tab" type="button" role="tab" id="tabbtn-invoices" data-tab="invoices" aria-controls="tab-invoices" aria-selected="false" tabindex="-1">Saved</button>
-    <button class="tab" type="button" role="tab" id="tabbtn-design" data-tab="design" aria-controls="tab-design" aria-selected="false" tabindex="-1">Design</button>
-  </nav>
-</div>
-  <div class="notice privacy-notice" id="privacyNotice"><span>Saved only in this browser on this device. Nothing is uploaded.</span><button class="notice-close" id="privacyNoticeClose" type="button" aria-label="Hide this message" title="Hide">&times;</button></div>
-  <div class="notice backup-reminder" id="backupReminder" role="status" hidden><span id="backupReminderText">You have not made a full backup in the last 30 days.</span> <span class="notice-actions"><button class="btn small" id="backupNowBtn" type="button">Back up now</button><button class="btn small" id="backupLaterBtn" type="button" title="Remind me again in 7 days">Later</button></span></div>
+</header>
 
+<main>
+  <section class="summary" id="summary" aria-label="Bundle summary"></section>
 
-  <div class="tabpane active" id="tab-invoice" role="tabpanel" aria-labelledby="tabbtn-invoice">
-    <details class="panel" id="panel-invoice" data-default="open" open>
-      <summary class="panelhead"><h2>Invoice</h2><span class="hint when-closed" id="sumInvoice"></span></summary>
-      <div class="panel-body">
-      <div class="grid2">
-        <div class="field"><label for="invoiceNumber">Invoice number</label><div class="inline-input"><input id="invoiceNumber" value="INV-1001"><button class="btn small" id="nextNumberBtn" type="button" title="Increase the number at the end by one, for example INV-1001 to INV-1002">Next</button></div><div class="hint field-warning" id="invoiceNumberWarning" role="status" hidden>Another saved invoice already uses this number.</div></div>
-        <div class="field"><label for="reference">Reference / PO</label><input id="reference"></div>
-        <div class="field"><label for="invoiceDate">Invoice date</label><input id="invoiceDate" type="date"></div>
-        <div class="field"><label for="dueDate">Due date</label><input id="dueDate" type="date" aria-describedby="dueDateWarning"><div class="hint field-warning" id="dueDateWarning" role="status" hidden>The due date is before the invoice date.</div></div>
-        <div class="field full due-presets" role="group" aria-label="Set the due date"><span class="due-presets-label">Due</span><button class="chip" type="button" data-due-days="0">On receipt</button><button class="chip" type="button" data-due-days="7">7 days</button><button class="chip" type="button" data-due-days="14">14 days</button><button class="chip" type="button" data-due-days="30">30 days</button></div>
-      </div>
+  <!-- Checks -->
+  <section class="card" id="checksCard" aria-labelledby="h-checks">
+    <div class="card-head">
+      <div><h2 id="h-checks">Missing fields &amp; duplicates</h2><p>Updates as you type. <strong>Fix</strong> means a blank, duplicated or broken cell in the sheet. <strong>Check</strong> is worth a look. Click Show to jump to the field. Hover any link to preview it.</p></div>
+      <div class="check-head"><span id="checkCounts" class="check-head"></span><button class="btn small" id="checkLinksBtn" type="button" title="Opens every course page and artwork link to make sure it works and is shared publicly">Check all links</button></div>
     </div>
-    </details>
-    <details class="panel" id="panel-company" data-default="auto" open>
-      <summary class="panelhead"><h2>Your company</h2><span class="hint when-closed" id="sumCompany"></span></summary>
-      <div class="panel-body">
-      <div class="grid2">
-        <div class="field full"><label for="companyName">Company name</label><input id="companyName" value="Your Company Ltd."></div>
-        <div class="field"><label for="companyReg">Registration number</label><input id="companyReg"></div>
-        <div class="field"><label for="companyVat">VAT / tax number</label><input id="companyVat"></div>
-        <div class="field full"><label for="companyAddress">Address</label><textarea id="companyAddress"></textarea></div>
-        <div class="field"><label for="companyPhone">Phone</label><input id="companyPhone"></div>
-        <div class="field"><label for="companyEmail">Email</label><input id="companyEmail"></div>
-        <div class="field"><label for="companyWebsite">Website</label><input id="companyWebsite"></div>
-        <div class="field full"><label for="logoFile">Logo</label>
-<div class="logo-actions"><input id="logoFile" class="sr-only" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"><label class="btn small upload-btn" for="logoFile">Upload logo</label><button class="btn small danger" id="removeLogoBtn" type="button" hidden>Remove</button></div>
-<div class="hint" id="logoHint" style="margin-top:5px">PNG, JPG, WEBP or SVG. Maximum 3 MB.</div></div>
+    <div class="card-body">
+      <div class="import-box" id="importBox" hidden>
+        <div class="row"><strong id="importTitle">Problems found in the imported file</strong><button class="btn small" id="importDismiss" type="button">Dismiss</button></div>
+        <p class="muted" style="margin:0;font-size:13px">These are in the original file. The download from this tool takes names and shared answers from one place, so tab mismatches are fixed automatically. Anything still missing is listed below.</p>
+        <ul class="issues" id="importList"></ul>
       </div>
+      <div id="issues" style="display:grid;gap:14px"></div>
     </div>
-    </details>
-    <details class="panel" id="panel-client" data-default="open" open>
-      <summary class="panelhead"><h2>Bill to</h2><span class="hint when-closed" id="sumClient"></span></summary>
-      <div class="panel-body">
-      <div class="grid2">
-        <div class="field full"><label for="savedClients">Saved clients</label><div class="picker-row"><select id="savedClients"><option value="">Choose a saved client</option></select><button class="btn small" id="saveClientBtn" type="button" title="Save these client details for later invoices">Save client</button><button class="btn small danger" id="removeClientBtn" type="button" title="Remove the chosen client from saved clients" hidden>Remove</button></div></div>
-        <div class="field full"><label for="clientName">Client company</label><textarea id="clientName" class="compact-textarea" rows="2" placeholder="Company name (a second line is fine)"></textarea></div>
-        <div class="field full"><label for="clientAddress">Address</label><textarea id="clientAddress"></textarea></div>
-        <div class="field"><label for="clientContact">Contact</label><input id="clientContact"></div>
-        <div class="field"><label for="clientEmail">Email</label><input id="clientEmail" type="email" autocomplete="off"></div>
-        <div class="field"><label for="clientTax">VAT / tax</label><input id="clientTax"></div>
-      </div>
-    </div>
-    </details>
-    <details class="panel" id="panel-columns" data-default="closed" open>
-      <summary class="panelhead"><h2>Columns</h2><span class="hint" id="sumColumns"></span></summary>
-      <div class="panel-body">
-      <div class="importbox panel-actions"><button class="btn small" id="addColumnBtn">+ Add column</button></div>
-      <p class="hint">Add, remove, rename, reorder, resize, align, or hide columns. One column can be assigned as Quantity, Rate and Amount.</p>
-      <div id="columnEditor"></div>
-      <button class="btn small" id="restoreColumnsBtn">Restore default columns</button>
-    </div>
-    </details>
-    <details class="panel" id="panel-items" data-default="open" open>
-      <summary class="panelhead"><h2>Line items</h2><span class="hint" id="sumItems"></span></summary>
-      <div class="panel-body">
-      <div class="importbox">
-        <button class="btn small primary" id="addItemBtn" type="button">+ Add item</button>
-        <button class="btn small" id="importSheetBtn" type="button" title="Columns in the sheet are matched to your invoice columns by name">Import CSV / Excel</button>
-        <input id="sheetFile" class="hidden" type="file" accept=".csv,.xlsx,.xls">
-      </div>
-      <div class="import-check" id="importCheck" role="status" hidden></div>
-      <div id="itemsEditor"></div>
-      <div class="items-footer">
-        <button class="btn small" id="addItemBottomBtn" type="button">+ Add another item</button>
-        <button class="link-btn danger" id="clearItemsBtn" type="button">Clear all items</button>
-      </div>
-      <p class="hint items-tip">Press Enter in Qty or Rate to go to the next line, or add one.</p>
-    </div>
-    </details>
-    <details class="panel" id="panel-bundles" data-default="closed" open>
-      <summary class="panelhead"><h2>Royalty bundle splitter</h2><span class="hint">For royalty statements</span></summary>
-      <div class="panel-body">
-      <p class="hint">Splits the Name column of a royalty sheet into course and bundle. Review the result, then apply it to the invoice as line items.</p>
-      <label class="bundle-drop" id="bundleDrop" for="bundleFile">
-        <strong>Drop a royalty sheet here</strong>
-        <span>or click to choose .xlsx, .xls or .csv</span>
-      </label>
-      <input id="bundleFile" class="hidden" type="file" accept=".xlsx,.xls,.csv">
-      <div class="bundle-status" id="bundleStatus" role="status" aria-live="polite"></div>
+  </section>
 
-      <div id="bundleTools" class="hidden">
-        <div class="importbox">
-          <button class="btn small" id="bundleSplitViewBtn">Course + bundle</button>
-          <button class="btn small" id="bundleSummaryViewBtn">Bundle + price</button>
-          <button class="btn small" id="bundleDownloadBtn">Download CSV</button>
-          <button class="btn small danger" id="bundleClearBtn">Clear</button>
+  <!-- Bundle details -->
+  <section class="card" aria-labelledby="h-bundle">
+    <div class="card-head"><div><h2 id="h-bundle">Bundle details</h2><p>Goes to the top of the Line-up &amp; Tiers tab. End date and deadlines fill in from the launch date.</p></div></div>
+    <div class="card-body">
+      <div class="grid">
+        <div class="field wide"><label for="b-title">Bundle title</label><input id="b-title" type="text" data-b="title" placeholder="e.g. Python &amp; AI Programming Bundle"></div>
+        <div class="field"><label for="b-launch">Launch (tentative)</label><input id="b-launch" type="date" data-b="launch"></div>
+        <div class="field"><label for="b-end">Bundle end date</label><input id="b-end" type="date" data-b="end"><span class="hint">Auto: launch + 3 weeks</span></div>
+        <div class="field"><label for="b-final">Line-up finalized by</label><input id="b-final" type="date" data-b="finalizedBy"><span class="hint">Auto: 2 weeks before launch</span></div>
+        <div class="field"><label for="b-assets">Assets due</label><input id="b-assets" type="date" data-b="assetsDue"><span class="hint">Auto: 2 weeks before launch</span></div>
+        <div class="field"><label for="b-ext">Possible extension?</label><input id="b-ext" type="text" data-b="extension" placeholder="Optional"></div>
+        <div class="field"><label for="b-char">Charities / causes</label><input id="b-char" type="text" data-b="charities" placeholder="Optional"></div>
+        <div class="field">
+          <label>Tier prices ($)</label>
+          <div class="tier-prices">
+            <div class="field"><input id="tp1" type="number" min="0" data-tier="0" aria-label="Tier 1 price"></div>
+            <div class="field"><input id="tp2" type="number" min="0" data-tier="1" aria-label="Tier 2 price"></div>
+            <div class="field"><input id="tp3" type="number" min="0" data-tier="2" aria-label="Tier 3 price"></div>
+          </div>
         </div>
-        <div class="importbox">
-          <button class="btn small primary" id="applyBundlesBtn">Apply courses to invoice</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Courses -->
+  <section class="card" aria-labelledby="h-courses">
+    <div class="card-head">
+      <div><h2 id="h-courses">Courses</h2><p>Each course fills one row on Line-up &amp; Tiers and one column on Assets Req List, so names always match. Hover a link to preview it, click ↗ to open it.</p></div>
+      <div class="actions">
+        <button class="btn small ai-only" id="aiDescBtn" type="button">Write missing descriptions with AI</button>
+        <button class="btn small" id="addRowBtn" type="button">Add course</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="paste">
+        <label for="pasteBox"><strong>Paste courses</strong> <span class="muted">from Excel, Google Sheets or a list of links. One course per line. Columns are detected: name, course link, tiers (e.g. 1,2,3), price, artwork link, description.</span></label>
+        <textarea id="pasteBox" placeholder="Python Programming: Beginner To Expert	https://www.janets.org.uk/course/python-programming-beginner-to-expert/	3	34	https://drive.google.com/file/d/…&#10;https://www.janets.org.uk/course/graph-theory-algorithms/"></textarea>
+        <div class="paste-row">
+          <button class="btn small primary" id="pasteAdd" type="button">Add to list</button>
+          <button class="btn small" id="pasteReplace" type="button">Replace list</button>
+          <span class="hint">A link on its own gets a title from the URL. Check those titles before submitting.</span>
         </div>
-        <div class="bundle-meta" id="bundleMeta"></div>
-        <div id="bundleResults"></div>
       </div>
-    </div>
-    </details>
-    <details class="panel" id="panel-totals" data-default="open" open>
-      <summary class="panelhead"><h2>Totals</h2><span class="hint" id="sumTotals"></span></summary>
-      <div class="panel-body">
-      <div class="grid2">
-        <div class="field"><label for="currency">Currency</label><select id="currency"><option value="GBP">GBP - £</option><option value="USD">USD - $</option><option value="EUR">EUR - €</option><option value="BDT">BDT - ৳</option><option value="AUD">AUD - A$</option><option value="CAD">CAD - C$</option></select></div>
-        <div class="field"><label for="discount">Discount %</label><input id="discount" type="number" min="0" value="0" step=".01"></div>
-        <div class="field"><label for="tax">Tax %</label><input id="tax" type="number" min="0" value="0" step=".01"></div>
-        <div class="field"><label for="shipping">Shipping</label><input id="shipping" type="number" min="0" value="0" step=".01"></div>
-      </div>
-    </div>
-    </details>
-    <details class="panel" id="panel-footer" data-default="auto-footer" open>
-      <summary class="panelhead"><h2>Notes, payment and terms</h2><span class="hint when-closed" id="sumFooter"></span></summary>
-      <div class="panel-body">
-      <div class="grid3">
-        <div class="field full"><label for="notes">Notes</label><textarea id="notes" placeholder="Optional, shown on this invoice"></textarea></div>
-        <div class="field full"><label for="paymentDetails">Payment details</label><textarea id="paymentDetails" placeholder="Bank details or how to pay"></textarea></div>
-        <div class="field full"><label for="terms">Terms</label><textarea id="terms" placeholder="Optional"></textarea></div>
-      </div>
-    </div>
-    </details>
-  </div>
 
-  <div class="tabpane" id="tab-invoices" role="tabpanel" aria-labelledby="tabbtn-invoices">
-    <details class="panel" id="panel-saved" data-default="open" open>
-      <summary class="panelhead"><h2>Saved invoices</h2><span class="hint" id="invoiceCount"></span></summary>
-      <div class="panel-body">
-      <div class="importbox">
-        <button class="btn small primary" id="newInvoiceBtn" type="button" title="Keeps your company details, design and payment details; clears the client and items; uses the next unused number">New invoice</button>
-        <button class="btn small" id="duplicateInvoiceBtn" type="button" title="Copies the open invoice with the next unused number and today's date">Duplicate</button>
-        <button class="btn small" id="blankInvoiceBtn" type="button" title="Starts from the app's defaults">New blank</button>
+      <div class="toolbar">
+        <div class="grp">
+          <span>Assign tiers by order:</span>
+          <label for="tc1">first</label><input id="tc1" type="number" min="0" value="5">
+          <label for="tc2">→ tiers 1-3, next</label><input id="tc2" type="number" min="0" value="6">
+          <span>→ tiers 2-3, rest → tier 3</span>
+          <button class="btn small" id="tierApply" type="button">Apply</button>
+        </div>
+        <div class="grp">
+          <label for="msrpAll">Set every MSRP to $</label><input id="msrpAll" type="number" min="0">
+          <button class="btn small" id="msrpApply" type="button">Apply</button>
+        </div>
+        <label class="filter" for="onlyProblems"><input type="checkbox" id="onlyProblems"> Show only courses with problems</label>
       </div>
-      <p class="hint">Every change is saved automatically.</p>
-      <div class="field"><label for="invoiceSearch">Search</label><input id="invoiceSearch" type="search" placeholder="Invoice number or client" autocomplete="off"></div>
-      <div id="invoiceList" class="invoice-list" aria-live="polite"></div>
-    </div>
-    </details>
-    <details class="panel" id="panel-backup" data-default="open" open>
-      <summary class="panelhead"><h2>Backup</h2><span class="hint" id="lastBackupHint"></span></summary>
-      <div class="panel-body">
-      <p class="hint">Saves every invoice, client, template and brand to one file on your computer. Restoring adds them back and never deletes anything already here.</p>
-      <div class="importbox">
-        <button class="btn small primary" id="backupBtn" type="button">Back up everything</button>
-        <button class="btn small" id="restoreBtn" type="button">Restore from backup</button>
-        <input type="file" id="restoreFile" class="hidden" accept=".json,application/json">
-      </div>
-    </div>
-    </details>
-  </div>
 
-  <div class="tabpane" id="tab-design" role="tabpanel" aria-labelledby="tabbtn-design">
-    <details class="panel" id="panel-template" data-default="open" open>
-      <summary class="panelhead"><h2>Invoice template</h2><span class="hint when-closed" id="sumTemplate"></span></summary>
-      <div class="panel-body">
-      <div class="field"><label for="template">Design</label>
-        <select id="template">
-          <option value="modern">Modern</option>
-          <option value="minimal">Janets Fanatical</option>
-          <option value="classic">One Education Fanatical</option>
-          <option value="royalty">Alpha Academy Fanatical</option><option value="ukhf">UKHF Fanatical</option><option value="multipurpose">Multipurpose</option>
-        </select>
-        <div class="hint" id="fontHint" style="margin-top:6px"></div>
-      </div>
-      <div class="grid2" style="margin-top:10px">
-        <div class="field"><label for="accent">Accent colour</label><input id="accent" type="color" value="#46b751"></div>
-        <div class="field"><label for="accentHex">Accent HEX</label><input id="accentHex" value="#46b751"></div>
-        <div class="field"><label for="logoWidth">Logo width (px)</label><input id="logoWidth" type="range" min="40" max="240" value="120"><div class="hint"><span id="logoWidthValue">120</span> px</div></div>
-        <div class="field"><label for="logoHeight">Logo height (px)</label><input id="logoHeight" type="range" min="30" max="140" value="54"><div class="hint"><span id="logoHeightValue">54</span> px</div></div>
-        <div class="field"><label for="logoFit">Logo fit</label><select id="logoFit"><option value="contain">Contain</option><option value="cover">Cover</option><option value="fill">Stretch</option></select></div>
-        <div class="field"><label for="logoAlign">Logo alignment</label><select id="logoAlign"><option value="left">Left</option><option value="center">Centre</option><option value="right">Right</option></select></div>
-        <div class="field"><label for="logoFallback">Without a logo, show</label><select id="logoFallback"><option value="initial" selected>Company initial</option><option value="none">Nothing</option></select></div>
-      </div>
-    </div>
-    </details>
-    <details class="panel" id="panel-watermark" data-default="closed" open>
-      <summary class="panelhead"><h2>Watermark</h2><span class="hint" id="sumWatermark"></span></summary>
-      <div class="panel-body">
-      <p class="hint" id="watermarkTemplateHint" hidden>Watermarks show on the Modern, Multipurpose and UKHF Fanatical templates. Choose one under Invoice template to see it.</p>
-      <div class="grid2">
-        <div class="field full"><label for="watermarkType">Watermark</label><select id="watermarkType"><option value="none" selected>Off</option><option value="text">Text</option><option value="logo">Logo</option><option value="image">Image</option></select></div>
-        <div class="field full" data-wm="text"><label for="watermarkText">Text</label><input id="watermarkText" maxlength="40" autocomplete="off" placeholder="For example: PAID, DRAFT or a brand name"></div>
-        <div class="field full" data-wm="image"><label for="watermarkFile">Image</label><div class="logo-actions"><input id="watermarkFile" class="sr-only" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"><label class="btn small upload-btn" for="watermarkFile">Upload image</label><button class="btn small danger" id="removeWatermarkBtn" type="button" hidden>Remove</button></div><div class="hint" id="watermarkFileHint" style="margin-top:5px">PNG, JPG, WEBP or SVG, up to 3 MB. A transparent PNG works best.</div></div>
-        <div class="field full hint" data-wm="logo" id="watermarkLogoHint">Uses the logo from Your company.</div>
-        <div class="field" data-wm="any"><label for="watermarkOpacity">Opacity</label><input id="watermarkOpacity" type="range" min="2" max="100" step="1" value="8"><div class="hint" id="watermarkOpacityValue">8%</div></div>
-        <div class="field" data-wm="any"><label for="watermarkSize">Size</label><input id="watermarkSize" type="range" min="20" max="150" step="5" value="70"><div class="hint" id="watermarkSizeValue">70% of the page width</div></div>
-        <div class="field" data-wm="any"><label for="watermarkAngle">Angle</label><select id="watermarkAngle"><option value="0">Level</option><option value="-30" selected>Rising, 30°</option><option value="-45">Rising, 45°</option><option value="30">Falling, 30°</option></select></div>
-        <div class="field" data-wm="any"><label for="watermarkLayout">Layout</label><select id="watermarkLayout"><option value="centred" selected>Centred on each page</option><option value="tiled">Tiled</option></select></div>
-        <div class="field" data-wm="text"><label for="watermarkColor">Colour</label><select id="watermarkColor"><option value="accent" selected>Accent colour</option><option value="grey">Grey</option><option value="black">Black</option></select></div>
-      </div>
-      <p class="hint" style="margin-top:10px">Saved with each invoice and in each brand, so every brand can have its own watermark.</p>
-      </div>
-    </details>
-    <details class="panel" id="panel-sections" data-default="closed" open>
-      <summary class="panelhead"><h2>Show or hide sections</h2><span class="hint" id="sumSections"></span></summary>
-      <div class="panel-body"><div id="sectionToggles"></div></div>
-    </details>
-    <details class="panel" id="panel-library" data-default="closed" open>
-      <summary class="panelhead"><h2>Templates and brands</h2><span class="hint" id="sumLibrary"></span></summary>
-      <div class="panel-body" id="templateManagerSection">
-<div class="actions">
-<button class="btn small primary" id="saveTemplateBtn">Save Template</button>
-<button class="btn small" id="saveBrandBtn">Save Brand</button>
-</div>
-<div class="hint" style="margin-top:6px">Brands save your seller/company identity and visual setup without replacing client details, invoice numbers, dates or line items.</div>
-<div id="savedTemplates" class="hint"></div>
-<div id="savedBrands" class="hint"></div>
-      </div>
-    </details>
-  </div>
-<div class="sidebar-resizer" id="sidebarResizer" title="Drag to resize sidebar (double-click to reset)" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" tabindex="0"></div>
-
-</aside>
-
-<main class="workspace">
-  <div class="canvasbar"><div class="meta" id="previewMeta">A4 portrait preview</div><div class="actions"><button class="btn small" id="zoomOut" type="button" aria-label="Zoom out">−</button><span class="meta" id="zoomLabel" aria-live="polite">100%</span><button class="btn small" id="zoomIn" type="button" aria-label="Zoom in">+</button><button class="btn small" id="zoomFit" type="button" title="Fit the page to the space available">Fit</button></div></div>
-  <div class="invoice-stage" id="invoiceStage"><article class="invoice template-modern" id="invoice">
-      <div class="invoice-watermark" id="pWatermark" aria-hidden="true" hidden></div>
-    <div class="topdetails">
-    <header class="inv-header">
-      <div class="companywrap" data-section="company">
-        <div class="logobox" data-section="logo"><img id="pLogo"><div class="logofallback" id="pLogoFallback">Y</div></div>
-        <div><div class="companyname" id="pCompanyName">Your Company Ltd.</div><div class="metaText" id="pCompanyMeta">Add your company details</div></div>
-      </div>
-      <div class="invtitle">
-        <h2 id="pInvoiceTitle">INVOICE</h2><div class="invno" id="pInvoiceNo">#INV-1001</div>
-        <table class="metatable">
-          <tr class="classic-only" id="classicInvoiceNoRow"><td>Invoice no.</td><td id="pClassicInvoiceNo">—</td></tr>
-          <tr data-section="invoiceDate"><td>Invoice date</td><td id="pDate">—</td></tr>
-          <tr data-section="dueDate"><td>Due date</td><td id="pDue">—</td></tr>
-          <tr data-section="reference"><td>Reference</td><td id="pReference">—</td></tr>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>#</th><th title="Top 5 products in order">Top 5</th><th>Product name (as shown on promo page)</th><th>Tiers</th><th>Course link</th><th>MSRP $</th><th>Artwork link</th><th>Description</th><th><span class="muted" style="text-transform:none">Move / remove</span></th>
+          </tr></thead>
+          <tbody id="rows"></tbody>
         </table>
-        <div class="balance" data-section="balance"><span id="pBalanceLabel">Balance due</span><strong id="pBalance">£0.00</strong></div>
       </div>
-    </header>
-    <div class="period-title" id="pPeriodTitle"></div>
-    <section class="billrow">
-      <div data-section="client"><div class="label" id="pBillToLabel">Bill to</div><div class="clientname" id="pClientName">Client company</div><div class="metaText" id="pClientMeta">Add client details</div></div>
-    </section>
     </div>
-    <table class="invtable"><colgroup id="pCols"></colgroup><thead><tr id="pHeaders"></tr></thead><tbody id="pItems"></tbody><tfoot id="pClassicTotals"></tfoot></table>
-    <section class="bottomgrid">
-      <div class="notebox" data-section="notes"><div class="label" id="pNoteLabel">Invoice note</div><div class="metaText" id="pNotes"></div></div>
-      <div class="summary">
-        <div class="sumrow"><span>Subtotal</span><strong id="pSubtotal">£0.00</strong></div>
-        <div class="sumrow" id="discountRow" data-section="discount"><span id="discountLabel">Discount</span><strong id="pDiscount">−£0.00</strong></div>
-        <div class="sumrow" id="taxRow" data-section="tax"><span id="taxLabel">Tax</span><strong id="pTax">£0.00</strong></div>
-        <div class="sumrow" id="shippingRow" data-section="shipping"><span>Shipping</span><strong id="pShipping">£0.00</strong></div>
-        <div class="sumrow total"><span>Total</span><span id="pTotal">£0.00</span></div>
-      </div>
-    </section>
-    <section class="paymentgrid">
-      <div data-section="payment"><div class="label" id="pPaymentLabel">Payment details</div><div class="metaText" id="pPayment">Add payment details.</div></div>
-      <div data-section="terms"><div class="label" id="pTermsLabel">Terms</div><div class="metaText" id="pTerms"></div></div>
-    </section>
-    <footer class="footer" data-section="footer"><span id="pFooterCompany">Your Company Ltd.</span><span id="pFooterInvoice">Invoice #INV-1001</span></footer>
-  </article></div>
-</main>
-</div>
-<dialog class="confirm-dialog" id="templateOverwriteDialog">
-  <div class="dialog-body">
-    <h3>Template already exists</h3>
-    <p id="templateOverwriteMessage"></p>
-  </div>
-  <div class="dialog-actions">
-    <button class="btn" type="button" id="templateOverwriteCancel">Cancel</button>
-    <button class="btn primary" type="button" id="templateOverwriteConfirm">Overwrite</button>
-  </div>
-</dialog>
-<dialog class="confirm-dialog" id="appConfirmDialog" aria-labelledby="appConfirmTitle" aria-describedby="appConfirmMessage">
-  <div class="dialog-body">
-    <h3 id="appConfirmTitle"></h3>
-    <p id="appConfirmMessage"></p>
-    <ul class="dialog-list" id="appConfirmList" hidden></ul>
-  </div>
-  <div class="dialog-actions">
-    <button class="btn" type="button" id="appConfirmCancel">Cancel</button>
-    <button class="btn primary" type="button" id="appConfirmAccept">Confirm</button>
-  </div>
-</dialog>
-<dialog class="confirm-dialog" id="appPromptDialog" aria-labelledby="appPromptTitle">
-  <div class="dialog-body">
-    <h3 id="appPromptTitle"></h3>
-    <p id="appPromptMessage"></p>
-    <div class="field"><label for="appPromptInput" id="appPromptLabel"></label><input id="appPromptInput" autocomplete="off" aria-describedby="appPromptError"></div>
-    <div class="hint field-warning" id="appPromptError" role="alert" hidden></div>
-  </div>
-  <div class="dialog-actions">
-    <button class="btn" type="button" id="appPromptCancel">Cancel</button>
-    <button class="btn primary" type="button" id="appPromptAccept">Save</button>
-  </div>
-</dialog>
-<button class="jump-btn" id="jumpBtn" type="button" hidden>Preview</button>
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </section>
 
-<script type="module" src="js/app.js"></script>
+
+  <!-- Marketing -->
+  <section class="card" aria-labelledby="h-mkt">
+    <div class="card-head">
+      <div><h2 id="h-mkt">Marketing &amp; highlights</h2><p>Goes to the Marketing and Highlights tab. Tier 2 and 3 rows are optional.</p></div>
+      <button class="btn small ai-only" id="aiMktBtn" type="button">Draft tier 1 highlights with AI</button>
+    </div>
+    <div class="card-body">
+      <div class="field"><label for="m1">Tier 1 highlights (bullets or short description)</label><textarea id="m1" data-m="t1" rows="7"></textarea></div>
+      <div class="grid">
+        <div class="field"><label for="m2">Tier 2 highlights</label><textarea id="m2" data-m="t2"></textarea></div>
+        <div class="field"><label for="m3">Tier 3 highlights</label><textarea id="m3" data-m="t3"></textarea></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Publisher profile -->
+  <details class="card" id="profileCard">
+    <summary class="card-head">
+      <div><h2><span class="chev" aria-hidden="true">›</span> Publisher profile: <span id="profileName"></span></h2><p>Licence, redemption, support and About text. Same for every course, so it rarely changes. Save it once per brand.</p></div>
+    </summary>
+    <div class="card-body">
+      <div class="profile-bar">
+        <div class="field"><label for="profileSelect">Saved profiles <span id="dbState" class="muted"></span></label><select id="profileSelect"></select></div>
+        <button class="btn small" id="profileLoad" type="button">Load</button>
+        <div class="field"><label for="pf-name">Profile name</label><input id="pf-name" type="text" data-p="name"></div>
+        <button class="btn small primary" id="profileSave" type="button">Save profile for the team</button>
+      </div>
+      <div class="grid" id="profileFields"></div>
+    </div>
+  </details>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<div class="pv" id="pv" role="tooltip" hidden></div>
+
+<div class="modal-back" id="unlockModal" hidden>
+  <form class="modal" id="unlockForm" role="dialog" aria-modal="true" aria-labelledby="unlockTitle" novalidate>
+    <header><h2 id="unlockTitle">Connect to the team back end</h2><p>Turns on page and image previews, link checks, AI writing, shared profiles and Save to Drive. Your browser remembers it, so you only do this once.</p></header>
+    <div class="body" style="display:grid;gap:12px;padding-bottom:16px">
+      <div class="field" id="unlockUrlField"><label for="unlockUrl">Apps Script web app URL</label><input id="unlockUrl" type="url" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off"></div>
+      <div class="field"><label for="unlockKey">Team access key</label><input id="unlockKey" type="password" autocomplete="current-password"><span class="hint">Ask whoever set up the tool.</span></div>
+      <div class="field"><label for="unlockName">Your name (optional)</label><input id="unlockName" type="text" autocomplete="name"><span class="hint">Shown next to profiles you save.</span></div>
+      <p id="unlockMsg" class="cell-note bad" style="font-size:13px;margin:0" hidden></p>
+    </div>
+    <footer>
+      <button class="btn" id="unlockSkip" type="button">Use without it</button>
+      <button class="btn primary" id="unlockGo" type="submit">Connect</button>
+    </footer>
+  </form>
+</div>
+
+<div class="modal-back" id="dlModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dlTitle">
+    <header><h2 id="dlTitle">The sheet isn't complete yet</h2><p id="dlSub"></p></header>
+    <div class="body"><ul class="issues" id="dlList"></ul></div>
+    <footer>
+      <button class="btn" id="dlAnyway" type="button">Download anyway</button>
+      <button class="btn primary" id="dlFix" type="button">Go back and fix</button>
+    </footer>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script>
+// ---- HSB workbook generator + reader (shared by page and Node tests) ----
+const HSB_LABELS = {
+  1: "Must provide the following for each piece of content (either fill out in each column or use your own doc and share) ",
+  2: "For any art assets, Dropbox is preferred, but can work with others.",
+  5: "Product name:",
+  6: "Version number:",
+  7: "MSRP/retail price:",
+  8: "Description of your product (about 800 characters recommended for best fit):",
+  9: "System requirements, platforms supported:",
+  10: "License Limits:",
+  11: "License Duration:",
+  12: "Number of users or devices supported:",
+  13: "Number of times software can be re-installed on the same machine:",
+  14: "Are there region restrictions?",
+  15: "Is this license eligible to be upgraded to future versions of the software?",
+  16: "Link to your EULA or licensing documents",
+  17: "Redemption Limits:",
+  18: "Is there a deadline to redeem the software?",
+  19: "Does this deadline affect customers re-installing the software?",
+  20: "Does the license stack, replace, renew or otherwise interfere with existing customers? (please specify)",
+  21: "Can customers purchase / redeem multiple copies of this license?",
+  22: "Redemption instructions:",
+  23: "How will licenses be provided to Humble Bundle? (keys, redemption urls, licenses embedded in software)",
+  24: "Redemption / Download URL (if any):",
+  25: "Steps to redeem / install:",
+  26: "Artwork 1800 wide x 2560 high aspect ratio (flat box shots - if you don't have any, no worries! Just think about what image would stand out when featured on the main promo page and newsletters)",
+  27: "This will be used as the icon for your software on the site and for social media assets.",
+  28: "Layered PSDs are highly preferred in case we need to do some small adjustments.",
+  29: "***If you are providing boxshots, please provide flat images, not 3D box shots. Just the front of the box image works best for us.",
+  30: "Product video file or YouTube trailer URL for your product.",
+  31: "Tech support contact info (for customers to use if they have issues with your product)",
+  32: "Official website URL (Company or product URL)"
+};
+
+// Assets rows that come from the publisher profile (same in every column)
+const HSB_PROFILE_ROWS = {
+  6: "version", 9: "sysreq", 10: "licenseLimits", 11: "licenseDuration", 12: "users",
+  13: "reinstalls", 14: "region", 15: "upgrade", 16: "eula", 17: "redemptionLimits",
+  18: "redeemDeadline", 19: "deadlineAffects", 20: "stack", 21: "multiple",
+  22: "redemptionInstr", 23: "delivery", 25: "steps", 28: "psd", 30: "video",
+  31: "support", 32: "website"
+};
+
+function hsbNum(v) {
+  if (v === null || v === undefined || v === "") return v;
+  const s = String(v).trim();
+  return /^\d+(\.\d+)?$/.test(s) ? Number(s) : s;
+}
+
+function hsbParseDate(s) {
+  if (!s) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (!m) return null;
+  return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+}
+
+function hsbBuildWorkbook(ExcelJS, st) {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "HSB Submission Builder";
+  const base = { name: "Arial", size: 10 };
+  const bold = { name: "Arial", size: 10, bold: true };
+  const linkFont = { name: "Arial", size: 10, color: { argb: "FF1155CC" }, underline: true };
+  const thin = { style: "thin", color: { argb: "FF000000" } };
+  const b = st.bundle, p = st.profile, items = st.products;
+
+  const setLink = (cell, text, url) => {
+    if (url) { cell.value = { text: text || url, hyperlink: url }; cell.font = linkFont; }
+    else { cell.value = ""; cell.font = base; }
+  };
+  const setDate = (cell, iso) => {
+    const d = hsbParseDate(iso);
+    if (d) { cell.value = d; cell.numFmt = "d mmm yyyy"; } else cell.value = iso || null;
+    cell.font = base;
+  };
+
+  // ---------- Sheet 1: Line-up & Tiers ----------
+  const s1 = wb.addWorksheet("Line-up & Tiers", { views: [{ state: "frozen", xSplit: 0, ySplit: 10 }] });
+  s1.columns = [
+    { width: 68.9 }, { width: 15.6 }, { width: 80.6 }, { width: 13 }, { width: 13 },
+    { width: 13 }, { width: 43.1 }, { width: 30 }, { width: 30 }
+  ];
+  const put = (ref, v, f) => { const c = s1.getCell(ref); c.value = v; c.font = f || base; return c; };
+  put("A1", "Title", bold); put("B1", b.title || "", bold);
+  const a2 = put("A2", "Launch (tentative) ");
+  a2.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFF00" } };
+  setDate(s1.getCell("B2"), b.launch);
+  put("A3", "Bundle End date"); setDate(s1.getCell("B3"), b.end); put("C3", b.endNote || "(3 weeks)");
+  put("A4", "Possible Extension?"); put("B4", b.extension || "");
+  put("A5", "Line-up finalized by"); setDate(s1.getCell("B5"), b.finalizedBy); put("C5", "2 weeks before launch");
+  put("A6", "Assets Due"); setDate(s1.getCell("B6"), b.assetsDue); put("C6", "2 weeks before launch");
+  put("A7", "Charities/Causes"); put("B7", b.charities || "");
+  put("H1", "Tiers"); put("I1", "$ ");
+  (b.tiers || []).forEach((t, i) => { put("H" + (2 + i), i + 1); const c = put("I" + (2 + i), hsbNum(t)); });
+
+  const heads = ["Product Name (Actual product titles to be shown on the live promo page)", "Tiers (1, 2, 3)", "Links", "Price (MSRP$)", "Developer", "Publisher", "Top 5 products in order", "Any editorial quotes to use, or awards received", "Notes"];
+  s1.getRow(10).height = 63.75;
+  heads.forEach((h, i) => {
+    const c = s1.getRow(10).getCell(i + 1);
+    c.value = h; c.font = bold;
+    c.alignment = { wrapText: true, vertical: "top" };
+    c.border = { top: thin, left: thin, bottom: thin, right: thin };
+  });
+  const top5 = items.filter(x => x.top5).slice().sort((a, c) => a.top5 - c.top5).slice(0, 5);
+  items.forEach((it, i) => {
+    const r = s1.getRow(11 + i);
+    r.getCell(1).value = it.name; r.getCell(1).font = base;
+    r.getCell(2).value = hsbNum(it.tiers); r.getCell(2).font = base;
+    r.getCell(2).alignment = { horizontal: "left" };
+    setLink(r.getCell(3), it.link, it.link);
+    r.getCell(4).value = hsbNum(it.price); r.getCell(4).numFmt = '"$"#,##0'; r.getCell(4).font = base;
+    r.getCell(5).value = p.developer; r.getCell(5).font = base;
+    r.getCell(6).value = p.publisher; r.getCell(6).font = base;
+    r.getCell(8).value = it.quotes || null; r.getCell(8).font = base;
+    r.getCell(9).value = it.notes || null; r.getCell(9).font = base;
+  });
+  top5.forEach((it, i) => { const c = s1.getRow(11 + i).getCell(7); c.value = it.name; c.font = base; });
+
+  // ---------- Sheet 2: Assets Req List ----------
+  const s2 = wb.addWorksheet("Assets Req List", { views: [{ state: "frozen", xSplit: 1, ySplit: 2 }] });
+  s2.getColumn(1).width = 55.1;
+  for (let r = 1; r <= 32; r++) {
+    if (!HSB_LABELS[r]) continue;
+    const c = s2.getCell(r, 1);
+    c.value = HSB_LABELS[r]; c.font = base;
+    c.alignment = { wrapText: true, vertical: "top" };
+  }
+  items.forEach((it, i) => {
+    const col = i + 2;
+    s2.getColumn(col).width = 40;
+    const cell = r => s2.getCell(r, col);
+    const set = (r, v) => { const c = cell(r); c.value = hsbNum(v); c.font = base; c.alignment = { wrapText: true, vertical: "top" }; };
+    set(4, i + 1);
+    set(5, it.name);
+    set(7, it.price);
+    set(8, it.description);
+    for (const [r, key] of Object.entries(HSB_PROFILE_ROWS)) set(+r, p[key]);
+    setLink(cell(24), p.redeemUrlText || "Redeem Link", p.redeemUrl);
+    setLink(cell(26), "Image Link", it.artwork);
+    setLink(cell(27), "Link", it.icon || p.iconUrl);
+    setLink(cell(29), "Image Link", it.artwork);
+  });
+
+  // ---------- Sheet 3: Marketing and Highlights ----------
+  const s3 = wb.addWorksheet("Marketing and Highlights");
+  s3.columns = [{ width: 33.4 }, { width: 60 }, { width: 60 }];
+  const m = (ref, v, f) => { const c = s3.getCell(ref); c.value = v; c.font = f || base; c.alignment = { wrapText: true, vertical: "top" }; return c; };
+  m("A2", "May be used on the main bundle page, newsletters and social/any other marketing promos");
+  m("A4", "Tiers (1, 2, 3)", bold);
+  s3.getRow(5).height = 63.75;
+  m("B5", "A short description OR bullet points to highlight about the bundle (for example, what users can do with all the content in the bundle, what users can become, what they can learn, etc..) - to be used by HB Marketing", bold);
+  m("C5", "About (Developer/Company) paragraph -- may be added to the bottom of the main bundle page.", bold);
+  const mk = st.marketing || {};
+  [1, 2, 3].forEach(t => { m("A" + (5 + t), t); m("B" + (5 + t), mk["t" + t] || null); });
+  m("C6", p.about || null);
+  return wb;
+}
+
+// ---- Read an existing HSB workbook back into state ----
+function hsbCellText(c) {
+  const v = c && c.value;
+  if (v === null || v === undefined) return "";
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  if (typeof v === "object") {
+    if (v.richText) return v.richText.map(x => x.text).join("");
+    if (v.text !== undefined) return typeof v.text === "object" && v.text.richText ? v.text.richText.map(x => x.text).join("") : String(v.text);
+    if (v.result !== undefined) return String(v.result);
+    if (v.hyperlink) return v.hyperlink;
+  }
+  return String(v);
+}
+function hsbCellLink(c) {
+  const v = c && c.value;
+  if (v && typeof v === "object" && v.hyperlink) return v.hyperlink;
+  if (c && c.hyperlink) return c.hyperlink;
+  const t = hsbCellText(c);
+  return /^https?:\/\//i.test(t.trim()) ? t.trim() : "";
+}
+
+function hsbReadWorkbook(wb) {
+  const s1 = wb.getWorksheet("Line-up & Tiers") || wb.worksheets[0];
+  const s2 = wb.getWorksheet("Assets Req List") || wb.worksheets[1];
+  const s3 = wb.getWorksheet("Marketing and Highlights") || wb.worksheets[2];
+  if (!s1 || !s2) throw new Error("This file doesn't look like an HSB submission sheet (missing the Line-up or Assets tab).");
+  const T = (ws, ref) => hsbCellText(ws.getCell(ref)).trim();
+  const bundle = {
+    title: T(s1, "B1"), launch: T(s1, "B2"), end: T(s1, "B3"), extension: T(s1, "B4"),
+    finalizedBy: T(s1, "B5"), assetsDue: T(s1, "B6"), charities: T(s1, "B7"),
+    tiers: [T(s1, "I2"), T(s1, "I3"), T(s1, "I4")]
+  };
+  // Products from line-up
+  const products = [];
+  const top5Names = [];
+  const lastRow = s1.rowCount;
+  for (let r = 11; r <= lastRow; r++) {
+    const name = T(s1, "A" + r);
+    const g = T(s1, "G" + r);
+    if (g) top5Names.push(g);
+    if (!name) continue;
+    products.push({
+      name, tiers: T(s1, "B" + r), link: hsbCellLink(s1.getCell("C" + r)), price: T(s1, "D" + r),
+      quotes: T(s1, "H" + r), notes: T(s1, "I" + r), description: "", artwork: "", top5: ""
+    });
+  }
+  // Assets columns, matched by name (fallback by position)
+  const cols = [];
+  const lastCol = Math.max(s2.columnCount, 2);
+  for (let c = 2; c <= lastCol; c++) {
+    const name = hsbCellText(s2.getCell(5, c)).trim();
+    const desc = hsbCellText(s2.getCell(8, c)).trim();
+    if (!name && !desc) continue;
+    cols.push({ c, name, desc, art: hsbCellLink(s2.getCell(26, c)) || hsbCellLink(s2.getCell(29, c)) });
+  }
+  const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const L = c => { let s = ""; while (c) { const m = (c - 1) % 26; s = String.fromCharCode(65 + m) + s; c = (c - 1 - m) / 26; } return s; };
+  const short = s => s.length > 45 ? s.slice(0, 45) + "…" : s;
+  const problems = [];
+  const used = new Set();
+  products.forEach((p, i) => {
+    const row = 11 + i;
+    [["B", "tiers"], ["C", "course link"], ["D", "price"], ["E", "developer"], ["F", "publisher"]].forEach(([col, what]) => {
+      if (!T(s1, col + row)) problems.push(`Line-up & Tiers ${col}${row}: ${what} is empty for “${short(p.name)}”.`);
+    });
+    let hit = cols.find(x => x.name && !used.has(x.c) && norm(x.name) === norm(p.name));
+    if (!hit && cols[i] && !used.has(cols[i].c)) {
+      hit = cols[i];
+      if (!hit.name) problems.push(`Assets Req List ${L(hit.c)}5: product name is empty. It should be “${short(p.name)}” (Line-up row ${row}).`);
+      else problems.push(`Assets Req List ${L(hit.c)}5 says “${short(hit.name)}” but Line-up row ${row} says “${short(p.name)}”.`);
+    }
+    if (!hit) { problems.push(`“${short(p.name)}” (Line-up row ${row}) has no column on Assets Req List.`); }
+    else {
+      used.add(hit.c);
+      p.description = hit.desc; p.artwork = hit.art;
+      const lc = L(hit.c);
+      if (!hit.desc) problems.push(`Assets Req List ${lc}8: description is empty for “${short(p.name)}”.`);
+      if (!hsbCellLink(s2.getCell(26, hit.c))) problems.push(`Assets Req List ${lc}26: artwork link is empty for “${short(p.name)}”.`);
+      if (!hsbCellLink(s2.getCell(29, hit.c))) problems.push(`Assets Req List ${lc}29: boxshot link is empty for “${short(p.name)}”.`);
+      const ap = hsbCellText(s2.getCell(7, hit.c)).trim();
+      if (!ap) problems.push(`Assets Req List ${lc}7: MSRP is empty for “${short(p.name)}”.`);
+      else if (p.price && ap !== p.price) problems.push(`Price mismatch for “${short(p.name)}”: $${p.price} on Line-up, $${ap} on Assets Req List ${lc}7.`);
+    }
+    const k = top5Names.findIndex(n => norm(n) === norm(p.name));
+    if (k >= 0) p.top5 = k + 1;
+  });
+  cols.filter(x => !used.has(x.c)).forEach(x => problems.push(`Assets Req List column ${L(x.c)} (“${short(x.name || "no name")}”) isn't on the Line-up tab, so it was left out.`));
+  // Rows that should be identical in every column
+  const usedCols = cols.filter(x => used.has(x.c));
+  for (const r of Object.keys(HSB_PROFILE_ROWS).map(Number).concat([24, 27])) {
+    // rows 24/27 often hold one hyperlink spanning many cells, so compare the visible text
+    const vals = usedCols.map(x => hsbCellText(s2.getCell(r, x.c)).trim());
+    const blanks = usedCols.filter((x, j) => !vals[j]).map(x => L(x.c));
+    const label = short((HSB_LABELS[r] || "").replace(/:$/, ""));
+    if (blanks.length && blanks.length < usedCols.length) problems.push(`Assets Req List row ${r} (${label}): empty in ${blanks.length > 6 ? blanks.length + " columns" : "column" + (blanks.length > 1 ? "s " : " ") + blanks.join(", ")}.`);
+    else if (blanks.length === usedCols.length && usedCols.length) problems.push(`Assets Req List row ${r} (${label}): empty in every column.`);
+    const filled = vals.filter(Boolean);
+    if (new Set(filled).size > 1) {
+      const odd = usedCols.filter((x, j) => vals[j] && vals[j] !== filled[0]).map(x => L(x.c));
+      problems.push(`Assets Req List row ${r} (${label}): column${odd.length > 1 ? "s" : ""} ${odd.length > 6 ? odd.length + " columns" : odd.join(", ")} differ from the first course. The download uses one value for all.`);
+    }
+  }
+  // Profile from first filled column
+  const pc = cols[0] ? cols[0].c : 2;
+  const profile = {};
+  for (const [r, key] of Object.entries(HSB_PROFILE_ROWS)) profile[key] = hsbCellText(s2.getCell(+r, pc)).trim();
+  profile.redeemUrl = hsbCellLink(s2.getCell(24, pc));
+  profile.redeemUrlText = hsbCellText(s2.getCell(24, pc)).trim() || "Redeem Link";
+  profile.iconUrl = hsbCellLink(s2.getCell(27, pc));
+  profile.developer = T(s1, "E11");
+  profile.publisher = T(s1, "F11");
+  const marketing = {};
+  if (s3) {
+    [1, 2, 3].forEach(t => marketing["t" + t] = T(s3, "B" + (5 + t)));
+    profile.about = T(s3, "C6");
+  }
+  return { bundle, profile, products, marketing, problems };
+}
+
+if (typeof module !== "undefined") module.exports = { hsbBuildWorkbook, hsbReadWorkbook, HSB_LABELS };
+
+</script>
+<script>
+const EXAMPLE = {"bundle":{"title":"Python & AI Programming Bundle","launch":"","end":"","extension":"","finalizedBy":"","assetsDue":"","charities":"","tiers":["5","8","15"]},"profile":{"version":"N/A","sysreq":"To enroll in our online courses, you need a passion for learning, basic computer literacy, and good English comprehension. A reliable internet connection and a computer capable of running modern web browsers and code editors are essential, as several courses involve hands-on coding practice. No prior programming experience nor formal academic qualifications are required, these courses are designed to take learners from beginner to advanced levels, welcoming students from all backgrounds.","licenseLimits":"No Limit","licenseDuration":"Lifetime Access","users":"1","reinstalls":"1","region":"No","upgrade":"Yes","eula":"N/A","redemptionLimits":"1 Per User","redeemDeadline":"3 Years","deadlineAffects":"No","stack":"No","multiple":"Can but only for gifting others. Otherwise 1 user per customer","redemptionInstr":"Instructions for Redeeming Your Purchase on Janets:\n\n1. To redeem your purchase, please visit the Janets Redeem Voucher page\n2. Provide the required information\n3. Enter your key in the Voucher Code field.\n4. Once you've submitted your key, you will be automatically enrolled in the course you purchased.\n5. If you encounter any issues during the redemption process, please don't hesitate to contact us at info@janets.org.uk","delivery":"Keys","steps":"Steps for Redeeming Your Purchase on Janets:\n\n1. To redeem your purchase, please visit the https://www.janets.org.uk/redeem/\n2. Provide the required information\n3. Enter your key in the Voucher Code field.\n4. Once you've submitted your key, you will be automatically enrolled in the course you purchased.\n5. If you encounter any issues during the redemption process, please don't hesitate to contact us at info@janets.org.uk","psd":"N/A","video":"N/A","support":"info@janets.org.uk","website":"https://www.janets.org.uk/","redeemUrl":"https://www.janets.org.uk/redeem/","redeemUrlText":"Redeem Link","iconUrl":"https://drive.google.com/file/d/1H1nFPNLeaph8C6Rs_3qydEDAoPCu9p47/view?usp=drive_link","developer":"Janets","publisher":"Janets","about":"Janets is an online platform where learners come to learn, and evolve. From the very beginning, the aim of this platform was to create an ever-growing community of avid learners instead of just delivering formulaic education. Emphasising on making the learners equipped for the future world, Janets provides quality education designed by expert instructors. This way, learners develop new skills at ease with the carefully structured bite-sized modules.\n\nJanets aims to make education accessible to anyone and everyone by providing lessons worth learning and skills worth gaining. The ease of access to learning regardless of time, place, or medium is what learners love the most about Janets. The expert advice by the instructors and 24×7 customer assistance is just ‘amazing’, as mentioned by the valued learners who benefitted from this platform.\n\nJanets paves the way to a better future, one skill at a time. If you want to join this community of learners and influencers, it’s just a few clicks away.\n\nWelcome, to Janets!","name":"Janets"},"products":[{"name":"Data Manipulation in Python: Master Python, Numpy & Pandas","tiers":"1,2,3","link":"https://www.janets.org.uk/course/data-manipulation-in-python-master-python-numpy-pandas/","price":"34","quotes":"","notes":"","description":"Build a strong foundation in data manipulation with Python while developing practical skills in NumPy and Pandas. This course is designed for learners who want to work confidently with structured data, arrays, tables, and common data-processing workflows. It introduces essential techniques for organising, cleaning, transforming, filtering, and analysing datasets using widely used Python libraries. Ideal for aspiring data analysts, data scientists, programmers, and anyone looking to strengthen their Python data skills through flexible, self-paced online learning.","artwork":"https://drive.google.com/file/d/1hBFqbJWpTZE423x-R6qlrb7iOJqK7jfO/view?usp=drive_link","top5":""},{"name":"Data Science & Machine Learning With Python","tiers":"1,2,3","link":"https://www.janets.org.uk/course/data-science-machine-learning-with-python/","price":"34","quotes":"","notes":"","description":"Develop practical data science and machine learning skills using Python. This course introduces learners to the core concepts, tools, and programming techniques used to work with data and build machine learning solutions. Learners can strengthen their understanding of Python-based data analysis, preparation, modelling, and common machine learning workflows. Suitable for beginners, aspiring data scientists, analysts, and developers who want to build job-relevant technical knowledge and progress toward more advanced work in data science and artificial intelligence.","artwork":"https://drive.google.com/file/d/1mszzMAd8jg0sj78Bhb82OaZ_Okrun0AA/view?usp=drive_link","top5":""},{"name":"Diploma in C++ and Python Programming","tiers":"1,2,3","link":"https://www.janets.org.uk/course/diploma-in-c-and-python-programming/","price":"34","quotes":"","notes":"","description":"Learn two widely used programming languages in one comprehensive training programme. The Diploma in C++ and Python Programming is designed to help learners develop core programming knowledge, logical thinking, and practical coding skills. The course covers fundamental programming concepts through C++ and Python, helping learners understand syntax, program structure, problem solving, and software development principles. It is suitable for beginners, aspiring programmers, students, and professionals seeking to broaden their coding capabilities through flexible online study.","artwork":"https://drive.google.com/file/d/10m0X9GULntoP9aZ-7Yb283r5Y71emYoL/view?usp=drive_link","top5":""},{"name":"Generative AI for Beginners: Future of Innovation Unlocked","tiers":"1,2,3","link":"https://www.janets.org.uk/course/generative-ai-for-beginners-future-of-innovation-unlocked/","price":"34","quotes":"","notes":"","description":"Explore the fundamentals of Generative AI and understand how this rapidly evolving technology is changing digital innovation. Designed for beginners, this course introduces key generative AI concepts, common applications, and the role of AI-powered tools in modern work and technology. Learners can build a clearer understanding of how generative systems create content and support problem solving, productivity, and innovation. Suitable for professionals, students, entrepreneurs, and anyone interested in developing practical awareness of generative artificial intelligence and its emerging uses.","artwork":"https://drive.google.com/file/d/11ICzhx4P69S9HjymOi7xmJyLWwmjmAdo/view?usp=drive_link","top5":""},{"name":"Generative AI for Dynamic Java Web Applications with ChatGPT","tiers":"1,2,3","link":"https://www.janets.org.uk/course/generative-ai-for-dynamic-java-web-applications-with-chatgpt/","price":"34","quotes":"","notes":"","description":"Discover how generative AI and ChatGPT can support the development of dynamic Java web applications. This course combines web development concepts with modern AI-assisted workflows, helping learners explore how generative AI tools can be used alongside Java development. It is designed for learners looking to strengthen their understanding of Java-based web applications while gaining exposure to ChatGPT and AI-enabled development practices. Suitable for aspiring developers, programmers, and technology professionals seeking practical knowledge of contemporary software development methods.","artwork":"https://drive.google.com/file/d/1iRu4mgGaXHCdR9437uIeRISm1QeheKzz/view?usp=drive_link","top5":""},{"name":"Machine Learning for Aspiring Data Scientists: Zero to Hero","tiers":"2,3","link":"https://www.janets.org.uk/course/machine-learning-for-aspiring-data-scientists/","price":"34","quotes":"","notes":"","description":"Start your journey into machine learning with a structured course designed for aspiring data scientists. This beginner-friendly programme introduces important machine learning concepts and helps learners understand the processes involved in preparing data, developing models, and applying common analytical techniques. It supports progression from foundational knowledge toward more practical machine learning skills. Ideal for students, analysts, programmers, and career changers who want to develop a stronger understanding of machine learning and build a foundation for further study in data science and AI.","artwork":"https://drive.google.com/file/d/1Bdo2HqtfoO0WHc2nRDUYL5xCXKFs-F0K/view?usp=drive_link","top5":""},{"name":"Python & TensorFlow: Deep Dive into Machine Learning","tiers":"2,3","link":"https://www.janets.org.uk/course/python-tensorflow-deep-dive-into-machine-learning-ai/","price":"34","quotes":"","notes":"","description":"Take a deeper look at machine learning using Python and TensorFlow. This course is designed to help learners develop practical knowledge of Python-based machine learning while exploring TensorFlow, one of the most widely used frameworks for building intelligent applications. Learners can strengthen their understanding of machine learning concepts, model development, and AI-focused programming workflows. Suitable for aspiring machine learning engineers, data scientists, developers, and learners who already have basic programming knowledge and want to progress into more advanced AI and machine learning topics.","artwork":"https://drive.google.com/file/d/11v7x3fQ7FY34T7IMBeom4YQgTrDmeN9t/view?usp=drive_link","top5":""},{"name":"Python for Data Science & Machine Learning: Zero to Hero","tiers":"2,3","link":"https://www.janets.org.uk/course/python-for-data-science-machine-learning-zero-to-hero/","price":"34","quotes":"","notes":"","description":"Build your skills in Python, data science, and machine learning through a structured zero-to-hero learning path. The course is designed to introduce learners to essential Python-based data workflows and gradually develop their understanding of data analysis and machine learning concepts. It provides a practical foundation for working with data, understanding models, and applying programming techniques used in modern analytics. Suitable for beginners, aspiring data scientists, analysts, and professionals who want to develop technical skills for career growth or further study.","artwork":"https://drive.google.com/file/d/1ZMhtfQBlFDO8ts1TLBHry57YUhrWCOoO/view?usp=drive_link","top5":""},{"name":"Python for Data Visualization: The Complete Masterclass","tiers":"2,3","link":"https://www.janets.org.uk/course/python-for-data-visualization-the-complete-masterclass/","price":"34","quotes":"","notes":"","description":"Learn how to communicate data clearly and effectively using Python. This complete masterclass introduces learners to data visualisation concepts and Python-based techniques for transforming datasets into meaningful visual outputs. It is designed to help learners understand how charts, graphs, and other visual representations can support analysis, reporting, and decision-making. Suitable for aspiring data analysts, data scientists, researchers, programmers, and professionals who want to strengthen their ability to explore and present data through practical Python visualisation skills.","artwork":"https://drive.google.com/file/d/12YS3RRVcB8LQo_T00BtPz3u9XSaczEbX/view?usp=drive_link","top5":""},{"name":"Python for Deep Learning: Build Neural Networks in Python","tiers":"2,3","link":"https://www.janets.org.uk/course/python-for-deep-learning-build-neural-networks-in-python/","price":"34","quotes":"","notes":"","description":"Develop an introduction to deep learning and neural network development using Python. This course is designed to help learners understand the core ideas behind neural networks and how Python can be used to build and work with deep learning solutions. Learners can strengthen their knowledge of modern AI concepts, model structures, and practical programming workflows associated with deep learning. Suitable for aspiring data scientists, AI learners, programmers, and developers who want to progress beyond traditional machine learning and build a stronger foundation in neural-network-based technologies.","artwork":"https://drive.google.com/file/d/1oBC26gioz6uLevWH8_YQMDFRyjYvDbQ8/view?usp=drive_link","top5":""},{"name":"Python for Game Programming: Pygame from A to Z","tiers":"2,3","link":"https://www.janets.org.uk/course/python-for-game-programming-pygame-from-a-to-z/","price":"34","quotes":"","notes":"","description":"Learn how to create games with Python using Pygame in a structured A-to-Z programme. This course introduces learners to practical game programming concepts while helping them strengthen their Python coding skills through interactive development. Learners can explore the logic, structure, and programming techniques involved in building game-based applications with Pygame. Suitable for beginners, aspiring game developers, Python learners, students, and hobbyists who want an engaging way to practise programming and develop practical experience creating interactive software projects.","artwork":"https://drive.google.com/file/d/1ixjlybE9BwwE23FiKzeN0ANPmPASyxsF/view?usp=drive_link","top5":""},{"name":"Python for Machine Learning: The Complete Beginner's Course","tiers":"3","link":"https://www.janets.org.uk/course/python-for-machine-learning-the-complete-beginners-course/","price":"34","quotes":"","notes":"","description":"Build a beginner-friendly foundation in machine learning using Python. This course introduces key concepts and practical techniques used in machine learning, helping learners understand how data and algorithms can be used to develop predictive and analytical solutions. It is structured for learners who are new to the subject and want to progress from fundamental ideas toward practical Python-based workflows. Suitable for aspiring data scientists, analysts, programmers, students, and professionals seeking an accessible starting point for developing machine learning and artificial intelligence skills.","artwork":"https://drive.google.com/file/d/1XArhElG36Z-3L_dCNZCkKLRAyn-0D9u7/view?usp=drive_link","top5":""},{"name":"Python for OOP: The A-to-Z OOP Python Programming Course","tiers":"3","link":"https://www.janets.org.uk/course/python-for-oop-the-a-to-z-oop-python-programming-course/","price":"34","quotes":"","notes":"","description":"Master the foundations of object-oriented programming in Python with an A-to-Z learning approach. This course focuses on the principles used to organise and structure Python programs through object-oriented programming, helping learners develop cleaner, more reusable, and maintainable code. It is designed to strengthen programming logic and provide a practical understanding of how OOP concepts are applied in software development. Suitable for Python learners, aspiring developers, students, and programmers who want to improve their coding structure and prepare for more advanced application development.","artwork":"https://drive.google.com/file/d/1xQpFUsFXtUY4LT7lU36z03-ePN1tw65I/view?usp=drive_link","top5":""},{"name":"Python GUI Development with Tkinter: Build Pro Desktop Apps!","tiers":"3","link":"https://www.janets.org.uk/course/python-gui-development-with-tkinter-build-pro-desktop-apps/","price":"34","quotes":"","notes":"","description":"Learn to build graphical desktop applications with Python and Tkinter. This course introduces learners to GUI development concepts and practical techniques for creating user-friendly desktop interfaces using Python's Tkinter toolkit. It helps learners move beyond command-line programs and understand how interactive application components can be designed and organised. Suitable for Python learners, aspiring software developers, students, and professionals who want to develop practical desktop application skills and expand their programming portfolio through hands-on, self-paced online learning.","artwork":"https://drive.google.com/file/d/1zPcshXaoPeScCcY-umTIcyNpkYHAuVSh/view?usp=drive_link","top5":""},{"name":"Python Programming: Beginner To Expert","tiers":"3","link":"https://www.janets.org.uk/course/python-programming-beginner-to-expert/","price":"34","quotes":"","notes":"","description":"Progress from Python fundamentals to more advanced programming concepts with a course designed for learners at different stages. Python Programming: Beginner to Expert provides a structured path for developing coding knowledge, problem-solving ability, and practical programming skills using one of the world's most widely used languages. Learners can build confidence in writing and understanding Python programs while preparing for applications in software development, automation, data, and other technical fields. Suitable for beginners, students, career changers, and professionals seeking flexible Python training.","artwork":"https://drive.google.com/file/d/1nxcyRSPhc17M6KUX_LvdZ1h4GuI5XxGB/view?usp=drive_link","top5":""},{"name":"Python Web Scraping: Data Extraction with Beautiful Soup","tiers":"3","link":"https://www.janets.org.uk/course/python-web-scraping-data-extraction-with-beautiful-soup/","price":"34","quotes":"","notes":"","description":"Learn how to extract and work with information from websites using Python and Beautiful Soup. This course introduces practical web-scraping concepts and techniques for collecting structured data from web pages, helping learners develop useful skills for research, data collection, analysis, and automation projects. It is designed to strengthen Python programming knowledge while introducing workflows commonly used for web-based data extraction. Suitable for Python learners, aspiring data analysts, researchers, developers, and professionals who want to add practical web-scraping capabilities to their technical skill set.","artwork":"https://drive.google.com/file/d/1ylz9OztQyv0AIkPTGCfbvwlbN-eJIDqR/view?usp=drive_link","top5":""},{"name":"The Front-End Web Developer Bootcamp: HTML, CSS, JS & React","tiers":"3","link":"https://www.janets.org.uk/course/the-front-end-web-developer-bootcamp-html-css-js-react/","price":"34","quotes":"","notes":"","description":"Develop the essential skills required for modern front-end web development through a practical bootcamp covering HTML, CSS, JavaScript, and React. The course is designed to help learners understand how websites and interactive web interfaces are structured, styled, and programmed. Learners can build knowledge across core front-end technologies and gain exposure to React for component-based application development. Suitable for beginners, aspiring web developers, career changers, and professionals who want a structured route into front-end development and a stronger foundation for building modern web projects.","artwork":"https://drive.google.com/file/d/1XJgP4ZLtQ28MLAGvVAiwNyon-M1Epdd0/view?usp=drive_link","top5":""},{"name":"Python Django Training","tiers":"3","link":"https://www.janets.org.uk/course/python-django-training/","price":"34","quotes":"","notes":"","description":"Learn web development with Python and Django, a popular framework for building dynamic web applications. This training course is designed to help learners understand how Python can be used in back-end web development and how Django supports the creation and organisation of web-based projects. Learners can strengthen their programming knowledge while exploring important concepts associated with modern web application development. Suitable for aspiring Python developers, web developers, students, and professionals who want to expand their skills into server-side development and build a foundation for more advanced Django projects.","artwork":"https://drive.google.com/file/d/1Zd5uKLUooWNpE6zqOuPdZE16brwnvjyM/view?usp=drive_link","top5":""},{"name":"Business and Data Analysis With SQL","tiers":"3","link":"https://www.janets.org.uk/course/business-and-data-analysis-with-sql/","price":"34","quotes":"","notes":"","description":"Develop practical SQL skills for business intelligence and data analysis. This course teaches learners how to work with databases, retrieve and organise information, analyse business data, and generate meaningful insights using SQL. Learners can strengthen their understanding of queries, filtering, sorting, aggregation, data relationships, and analytical workflows used in professional environments. Suitable for aspiring data analysts, business analysts, database professionals, students, and anyone looking to build job-relevant SQL skills for reporting, decision-making, and data-driven business operations.","artwork":"https://drive.google.com/file/d/1nF4r2iLRgqoJi31hf72AxEGz2VrjYLB_/view?usp=drive_link","top5":""},{"name":"Graph Theory Algorithms","tiers":"3","link":"https://www.janets.org.uk/course/graph-theory-algorithms/","price":"34","quotes":"","notes":"","description":"Build a practical understanding of graph theory and the algorithms used to solve complex computational problems. This course introduces key concepts such as vertices, edges, paths, trees, networks, traversal techniques, and common graph algorithms. Learners can develop stronger algorithmic thinking and problem-solving skills while exploring how graph structures are applied in computer science, software development, networking, routing, and data analysis. Suitable for computer science students, programmers, developers, and learners interested in algorithms, data structures, and advanced problem-solving techniques.","artwork":"https://drive.google.com/file/d/1oJ-wVIWmNpsq64npRV9-jfK1wIwlNoEh/view?usp=drive_link","top5":""}],"marketing":{"t1":"• Build practical skills in programming, data analysis, machine learning, AI, web development, and algorithms.\n• Learn in-demand technologies including Python, SQL, JavaScript, React, Django, TensorFlow, NumPy, Pandas, and Generative AI.\n• Develop knowledge relevant to software development, data analysis, data science, machine learning, and web development roles.\n• Strengthen coding, problem-solving, data handling, and analytical skills.\n• Progress from beginner-friendly foundations to advanced topics such as deep learning, graph algorithms, web scraping, and full-stack development.\n• Ideal for career changers, aspiring developers, analysts, data professionals, and technology learners.\n• Study flexibly online and build a broad portfolio of practical, job-relevant digital skills.","t2":"","t3":""}};
+const DRAFT_KEY = "hsb-builder-draft-v1";
+const LOCAL_PROFILES_KEY = "hsb-builder-profiles-v1";
+
+// ---------- back end ----------
+// Paste your Apps Script web app URL here (Deploy → Manage deployments → Web app URL).
+// Leave empty to ask for it on first use.
+const HSB_API_URL = "";
+
+const API_KEY_STORE = "hsb-builder-api-v1";
+const HAS_GAS = typeof google !== "undefined" && google.script && google.script.run;
+function gas(fn, ...args) { return new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...args)); }
+function loadConn() { try { return JSON.parse(localStorage.getItem(API_KEY_STORE) || "{}"); } catch (e) { return {}; } }
+function saveConn(c) { try { localStorage.setItem(API_KEY_STORE, JSON.stringify(c)); } catch (e) {} }
+let conn = loadConn();
+if (HSB_API_URL) conn.url = HSB_API_URL;
+async function remote(action, ...args) {
+  if (!conn.url || !conn.key) throw new Error("LOCKED");
+  let res;
+  try {
+    res = await fetch(conn.url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action, args, key: conn.key, user: conn.name || "" }) });
+  } catch (e) { throw new Error("Couldn't reach the Apps Script back end. Check your internet connection, or the web app URL."); }
+  let j; try { j = await res.json(); } catch (e) { throw new Error("The back end didn't answer properly. Check that the web app is deployed with access set to “Anyone”."); }
+  if (!j.ok) {
+    if (j.error === "BAD_KEY") { showUnlock("That team access key isn't right."); throw new Error("LOCKED"); }
+    if (j.error === "NO_APP_KEY") throw new Error("The back end has no APP_KEY yet. Add it in Apps Script → Project Settings → Script properties.");
+    throw new Error(j.error);
+  }
+  return j.result;
+}
+function localProfiles() { try { return JSON.parse(localStorage.getItem(LOCAL_PROFILES_KEY) || "[]"); } catch (e) { return []; } }
+function saveLocalProfile(name, data) {
+  const list = localProfiles().filter(p => p.name.toLowerCase() !== name.toLowerCase());
+  list.push({ id: name.toLowerCase().replace(/[^a-z0-9]+/g, "-"), name, data, updatedAt: new Date().toISOString() });
+  list.sort((a, b) => a.name.localeCompare(b.name));
+  try { localStorage.setItem(LOCAL_PROFILES_KEY, JSON.stringify(list)); } catch (e) { throw new Error("This browser blocked local storage."); }
+  return list;
+}
+const api = {
+  get mode() { return HAS_GAS ? "gas" : (conn.url && conn.key ? "remote" : "static"); },
+  get backend() { return this.mode !== "static"; },
+  call(action, ...args) { return HAS_GAS ? gas(action, ...args) : remote(action, ...args); },
+  config() { return this.backend ? this.call("getConfig") : Promise.resolve({ aiEnabled: false, user: "" }); },
+  preview(url, kind) { return this.call("getPreview", url, kind, false); },
+  checkLinks(items, fresh) { return this.call("checkLinks", items, !!fresh); },
+  listProfiles() { return this.backend ? this.call("listProfiles") : Promise.resolve(localProfiles()); },
+  saveProfile(name, data) { return this.backend ? this.call("saveProfile", name, data) : Promise.resolve(saveLocalProfile(name, data)); },
+  writeDescriptions(payload) { return this.backend ? this.call("aiWriteDescriptions", payload) : Promise.reject(new Error("AI_NOT_SET_UP")); },
+  writeHighlights(payload) { return this.backend ? this.call("aiWriteHighlights", payload) : Promise.reject(new Error("AI_NOT_SET_UP")); },
+  saveToDrive(b64, name) { return this.call("saveToDrive", b64, name); }
+};
+
+const PROFILE_FIELDS = [
+  ["developer", "Developer", "text"], ["publisher", "Publisher", "text"],
+  ["version", "Version number", "text"], ["licenseLimits", "Licence limits", "text"],
+  ["licenseDuration", "Licence duration", "text"], ["users", "Users or devices supported", "text"],
+  ["reinstalls", "Times it can be re-installed", "text"], ["region", "Region restrictions?", "text"],
+  ["upgrade", "Eligible for future upgrades?", "text"], ["eula", "EULA / licensing link", "text"],
+  ["redemptionLimits", "Redemption limits", "text"], ["redeemDeadline", "Deadline to redeem", "text"],
+  ["deadlineAffects", "Deadline affects re-installs?", "text"], ["stack", "Licence stacks / replaces?", "text"],
+  ["multiple", "Multiple copies per customer?", "text"], ["delivery", "How licences are provided", "text"],
+  ["redeemUrl", "Redemption URL", "url"], ["redeemUrlText", "Redemption link text", "text"],
+  ["iconUrl", "Icon / logo link", "url"], ["psd", "Layered PSDs", "text"],
+  ["video", "Video / trailer URL", "text"], ["support", "Tech support contact", "text"],
+  ["website", "Official website", "url"],
+  ["sysreq", "System requirements", "area"], ["redemptionInstr", "Redemption instructions", "area"],
+  ["steps", "Steps to redeem / install", "area"], ["about", "About the company (Marketing tab)", "area"]
+];
+
+let state = loadDraft() || structuredClone(EXAMPLE);
+normalise(state);
+let openDesc = new Set();
+let profiles = [];
+
+function normalise(s) {
+  s.bundle = Object.assign({ title: "", launch: "", end: "", finalizedBy: "", assetsDue: "", extension: "", charities: "", tiers: ["5", "8", "15"] }, s.bundle || {});
+  s.profile = Object.assign({}, s.profile || {});
+  s.marketing = Object.assign({ t1: "", t2: "", t3: "" }, s.marketing || {});
+  s.importProblems = Array.isArray(s.importProblems) ? s.importProblems : [];
+  s.products = (s.products || []).map(p => Object.assign({ name: "", tiers: "", link: "", price: "", artwork: "", description: "", top5: "", quotes: "", notes: "", guessed: false, aiSource: "" }, p));
+}
+function loadDraft() { try { const t = localStorage.getItem(DRAFT_KEY); return t ? JSON.parse(t) : null; } catch (e) { return null; } }
+let saveTimer = null;
+function saveDraft() { clearTimeout(saveTimer); saveTimer = setTimeout(() => { try { localStorage.setItem(DRAFT_KEY, JSON.stringify(state)); } catch (e) {} }, 300); }
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function toast(msg, ms = 3200, html = false) { const t = $("toast"); if (html) t.innerHTML = msg; else t.textContent = msg; t.hidden = false; clearTimeout(t._h); t._h = setTimeout(() => t.hidden = true, ms); }
+
+// ---------- dates ----------
+function addDays(iso, n) { const d = hsbParseDate(iso); if (!d) return ""; d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+
+// ---------- tiers ----------
+const tierSet = s => new Set(String(s || "").split(/[^0-9]+/).filter(x => /^[123]$/.test(x)).map(Number));
+const tierStr = set => [...set].sort().join(",");
+
+// ---------- render: bundle / profile / marketing ----------
+function renderStatic() {
+  document.querySelectorAll("[data-b]").forEach(el => el.value = state.bundle[el.dataset.b] || "");
+  document.querySelectorAll("[data-tier]").forEach(el => el.value = state.bundle.tiers[+el.dataset.tier] || "");
+  document.querySelectorAll("[data-m]").forEach(el => el.value = state.marketing[el.dataset.m] || "");
+  $("pf-name").value = state.profile.name || "";
+  $("profileName").textContent = state.profile.name || state.profile.publisher || "unnamed";
+  const pf = $("profileFields");
+  pf.innerHTML = PROFILE_FIELDS.map(([k, label, kind]) => {
+    const id = "pf-" + k;
+    const v = esc(state.profile[k] || "");
+    return kind === "area"
+      ? `<div class="field wide"><label for="${id}">${label}</label><textarea id="${id}" data-p="${k}" rows="${k === "about" ? 6 : 4}">${v}</textarea></div>`
+      : kind === "url" || k === "eula" || k === "video"
+        ? `<div class="field"><label for="${id}">${label}</label><div class="link-cell"><input id="${id}" type="text" data-p="${k}" value="${v}">${openLink(state.profile[k], label.toLowerCase())}</div></div>`
+        : `<div class="field"><label for="${id}">${label}</label><input id="${id}" type="text" data-p="${k}" value="${v}"></div>`;
+  }).join("");
+}
+
+function openLink(url, what) {
+  const ok = isUrl(url);
+  return `<a class="open-link" data-open href="${ok ? esc(String(url).trim()) : "#"}" target="_blank" rel="noopener" title="Open ${what} in a new tab" aria-label="Open ${what}"${ok ? "" : " hidden"}>↗</a>`;
+}
+function syncOpenLink(input) {
+  const a = input.parentElement && input.parentElement.querySelector("[data-open]");
+  if (!a) return;
+  const ok = isUrl(input.value);
+  a.hidden = !ok; a.href = ok ? input.value.trim() : "#";
+}
+// ---------- render: courses ----------
+const PRODUCT_FIELDS = ["name", "tiers", "link", "price", "artwork", "description"];
+function renderRows() {
+  const n = state.products.length;
+  const top5Opts = v => `<option value="">–</option>` + [1, 2, 3, 4, 5].map(k => `<option value="${k}"${String(v) === String(k) ? " selected" : ""}>${k}</option>`).join("");
+  $("rows").innerHTML = state.products.map((p, i) => {
+    const ts = tierSet(p.tiers);
+    const len = (p.description || "").trim().length;
+    const open = openDesc.has(i);
+    return `<tr class="main-row" data-i="${i}">
+      <td class="num">${i + 1}</td>
+      <td class="top5"><select data-f="top5" aria-label="Top 5 rank for row ${i + 1}">${top5Opts(p.top5)}</select></td>
+      <td style="min-width:330px"><input type="text" data-f="name" value="${esc(p.name)}" aria-label="Product name row ${i + 1}"><div class="cell-note" data-note="name"></div></td>
+      <td><div class="tiers" data-tiers role="group" aria-label="Tiers row ${i + 1}">${[1, 2, 3].map(t => `<button type="button" class="tier-chip${ts.has(t) ? " on" : ""}" data-tier-toggle="${t}" aria-pressed="${ts.has(t)}">${t}</button>`).join("")}</div><div class="cell-note" data-note="tiers"></div></td>
+      <td style="min-width:240px"><div class="link-cell"><input type="url" data-f="link" value="${esc(p.link)}" aria-label="Course link row ${i + 1}">${openLink(p.link, "course page")}</div><div class="cell-note" data-note="link"></div></td>
+      <td style="width:84px"><input type="number" min="0" data-f="price" value="${esc(p.price)}" aria-label="MSRP row ${i + 1}"><div class="cell-note" data-note="price"></div></td>
+      <td style="min-width:210px"><div class="link-cell"><input type="url" data-f="artwork" value="${esc(p.artwork)}" placeholder="Drive / Dropbox link" aria-label="Artwork link row ${i + 1}">${openLink(p.artwork, "artwork")}</div><div class="cell-note" data-note="artwork"></div></td>
+      <td><button type="button" class="desc-btn" data-desc-toggle aria-expanded="${open}"></button><div class="cell-note" data-note="description"></div></td>
+      <td><div class="row-actions">
+        <button type="button" class="icon-btn" data-move="-1" title="Move up" aria-label="Move row ${i + 1} up"${i === 0 ? " disabled" : ""}>↑</button>
+        <button type="button" class="icon-btn" data-move="1" title="Move down" aria-label="Move row ${i + 1} down"${i === n - 1 ? " disabled" : ""}>↓</button>
+        <button type="button" class="icon-btn" data-del title="Remove" aria-label="Remove row ${i + 1}">✕</button>
+      </div></td>
+    </tr>` + (open ? `<tr class="desc-row" data-i="${i}"><td></td><td colspan="8"><div class="desc-edit">
+        <textarea data-f="description" aria-label="Description row ${i + 1}" placeholder="About 500-800 characters works best on the promo page.">${esc(p.description)}</textarea>
+        <div class="desc-meta"><span data-count>${len} characters</span><span>HB recommends about 800.</span>
+          <button type="button" class="btn small" data-ai-one>${len ? "Rewrite" : "Write"} with AI</button>
+          <label for="q${i}">Editorial quotes / awards</label><input id="q${i}" type="text" data-f="quotes" value="${esc(p.quotes)}" style="max-width:260px">
+          <label for="n${i}">Notes</label><input id="n${i}" type="text" data-f="notes" value="${esc(p.notes)}" style="max-width:260px">
+        </div>
+        <label for="src${i}" class="ai-help"><strong>Extra details for AI (optional, not added to the sheet).</strong> The AI reads the course page${p.link ? ` (<a href="${esc(p.link)}" target="_blank" rel="noopener">open it</a>)` : ""} by itself. Paste details here only if the page is thin or you want to steer it; this replaces the page text.</label>
+        <textarea id="src${i}" class="ai-source" data-f="aiSource" placeholder="e.g. Module 1: Introduction to Python · Module 2: Variables and data types …">${esc(p.aiSource || "")}</textarea>
+        </div></td></tr>` : "");
+  }).join("") || `<tr><td colspan="9" class="muted" style="padding:18px">No courses yet. Paste them above or click Add course.</td></tr>`;
+}
+
+// ---------- checks ----------
+const normName = s => String(s || "").toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
+const normLink = s => String(s || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/[?#].*$/, "").replace(/\/+$/, "");
+const normArt = s => { const t = String(s || "").trim(); const m = /\/d\/([\w-]{10,})/.exec(t) || /[?&]id=([\w-]{10,})/.exec(t); return m ? "gd:" + m[1] : normLink(t); };
+const normDesc = s => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
+const isUrl = s => /^https?:\/\/[^\s.]+\.[^\s]+$/i.test(String(s || "").trim());
+const shortName = (p, i) => `Row ${i + 1}${p.name ? ` · ${p.name.length > 42 ? p.name.slice(0, 42) + "…" : p.name}` : ""}`;
+const REQ_BUNDLE = [["title", "Bundle title"], ["launch", "Launch date"], ["end", "Bundle end date"], ["finalizedBy", "Line-up finalized by date"], ["assetsDue", "Assets due date"]];
+const FIELD_LABEL = { name: "product name", tiers: "tiers", link: "course link", price: "MSRP", artwork: "artwork link", description: "description" };
+
+function computeIssues() {
+  const out = [], cells = {};
+  const add = (level, group, msg, target, note) => {
+    out.push({ level, group, msg, target });
+    if (target && target.type === "product") {
+      const k = target.i + ":" + target.f, cur = cells[k];
+      if (!cur || (cur.level === "warn" && level === "bad")) cells[k] = { level, note: note || "" };
+      else if (cur.level === level && note && !cur.note.includes(note)) cells[k].note += (cur.note ? " · " : "") + note;
+    }
+  };
+  const b = state.bundle, ps = state.products, pr = state.profile;
+
+  // Bundle
+  REQ_BUNDLE.forEach(([k, label]) => { if (!String(b[k] || "").trim()) add("bad", "Bundle details", `${label} is empty.`, { type: "bundle", key: k }); });
+  b.tiers.forEach((v, j) => { if (!(Number(v) > 0)) add("bad", "Bundle details", `Tier ${j + 1} price is empty.`, { type: "tier", key: j }); });
+  const t = b.tiers.map(Number);
+  if (t.every(x => x > 0) && !(t[0] < t[1] && t[1] < t[2])) add("warn", "Bundle details", "Tier prices should go up from tier 1 to tier 3.", { type: "tier", key: 0 });
+  if (b.launch && b.end && b.end <= b.launch) add("bad", "Bundle details", "Bundle end date is on or before the launch date.", { type: "bundle", key: "end" });
+
+  // Courses: missing / invalid
+  if (!ps.length) add("bad", "Courses", "No courses yet. Paste them or click Add course.", null);
+  ps.forEach((p, i) => {
+    const r = shortName(p, i), T = f => ({ type: "product", i, f });
+    if (!p.name.trim()) add("bad", "Missing fields", `${r}: product name is empty.`, T("name"), "Required");
+    const ts = tierSet(p.tiers);
+    if (!ts.size) add("bad", "Missing fields", `${r}: no tier selected.`, T("tiers"), "Pick a tier");
+    else if ((ts.has(1) && (!ts.has(2) || !ts.has(3))) || (ts.has(2) && !ts.has(3))) add("warn", "Courses", `${r}: tiers ${tierStr(ts)} skip a higher tier. Higher tiers normally include everything below.`, T("tiers"), "Skips a tier");
+    if (!p.link.trim()) add("bad", "Missing fields", `${r}: course link is empty.`, T("link"), "Required");
+    else if (!isUrl(p.link)) add("bad", "Courses", `${r}: course link doesn't look like a web address.`, T("link"), "Not a valid link");
+    if (String(p.price).trim() === "") add("bad", "Missing fields", `${r}: MSRP is empty.`, T("price"), "Required");
+    else if (!(Number(p.price) > 0)) add("bad", "Courses", `${r}: MSRP must be a number above 0.`, T("price"), "Invalid");
+    if (!p.artwork.trim()) add("bad", "Missing fields", `${r}: artwork link is empty.`, T("artwork"), "Required");
+    else if (!isUrl(p.artwork)) add("bad", "Courses", `${r}: artwork link doesn't look like a web address.`, T("artwork"), "Not a valid link");
+    const len = (p.description || "").trim().length;
+    if (!len) add("bad", "Missing fields", `${r}: description is empty.`, T("description"), "Required");
+    else if (len < 300) add("warn", "Courses", `${r}: description is short (${len} characters).`, T("description"), "Short");
+    else if (len > 1000) add("warn", "Courses", `${r}: description is long (${len} characters).`, T("description"), "Long");
+    if (p.guessed) add("warn", "Courses", `${r}: title was made from the URL. Confirm it matches the course page.`, T("name"), "Title from URL, check it");
+  });
+
+  // Courses: duplicates
+  const dupCheck = (field, keyFn, what) => {
+    const groups = new Map();
+    ps.forEach((p, i) => { const v = String(p[field] || "").trim(); if (!v) return; const k = keyFn(v); if (!k) return; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(i); });
+    for (const idx of groups.values()) {
+      if (idx.length < 2) continue;
+      const rows = idx.map(i => i + 1);
+      const label = field === "name" || field === "link" ? `“${ps[idx[0]].name || ps[idx[0]].link}”` : "";
+      add("bad", "Duplicates", `Same ${what} on rows ${rows.join(", ")}${label ? ` ${label}` : ""}.`, { type: "product", i: idx[1], f: field }, null);
+      idx.forEach(i => { const others = rows.filter(x => x !== i + 1); const k = i + ":" + field; const note = `Duplicate of row ${others.join(", ")}`; if (!cells[k] || cells[k].level !== "bad" || cells[k].note === "") cells[k] = { level: "bad", note }; else if (!cells[k].note.includes("Duplicate")) cells[k].note += " · " + note; });
+    }
+  };
+  dupCheck("name", normName, "product name");
+  dupCheck("link", normLink, "course link");
+  dupCheck("artwork", normArt, "artwork link");
+  dupCheck("description", d => { const n = normDesc(d); return n.length > 40 ? n : ""; }, "description");
+  // Near-identical descriptions (same opening)
+  const opens = new Map();
+  ps.forEach((p, i) => { const n = normDesc(p.description); if (n.length < 200) return; const k = n.slice(0, 160); if (!opens.has(k)) opens.set(k, []); opens.get(k).push(i); });
+  for (const idx of opens.values()) {
+    if (idx.length < 2) continue;
+    if (new Set(idx.map(i => normDesc(ps[i].description))).size === 1) continue; // already reported as exact duplicate
+    add("warn", "Duplicates", `Descriptions on rows ${idx.map(i => i + 1).join(", ")} start with the same text. Make sure each one describes its own course.`, { type: "product", i: idx[1], f: "description" }, "Same opening as another row");
+  }
+  // Course link and artwork pointing to the same thing across fields
+  ps.forEach((p, i) => { if (p.link && p.artwork && normLink(p.link) === normLink(p.artwork)) add("bad", "Duplicates", `${shortName(p, i)}: artwork link is the same as the course link.`, { type: "product", i, f: "artwork" }, "Same as course link"); });
+
+  // Top 5 and tiers coverage
+  const ranks = ps.map(p => Number(p.top5)).filter(Boolean);
+  const want = Math.min(5, ps.length);
+  if (ps.length && ranks.length < want) add("warn", "Courses", `Top 5 products: ${ranks.length} of ${want} picked. Use the Top 5 column.`, ps.length ? { type: "product", i: 0, f: "top5" } : null);
+  [1, 2, 3].forEach(k => { if (ps.length && !ps.some(p => tierSet(p.tiers).has(k))) add("warn", "Courses", `Tier ${k} has no courses.`, null); });
+
+  // Profile: every field
+  PROFILE_FIELDS.forEach(([k, label]) => { if (!String(pr[k] || "").trim()) add("bad", "Publisher profile", `${label} is empty.`, { type: "profile", key: k }); });
+  ["redeemUrl", "iconUrl", "website"].forEach(k => { if (pr[k] && !isUrl(pr[k])) add("bad", "Publisher profile", `${PROFILE_FIELDS.find(f => f[0] === k)[1]} doesn't look like a web address.`, { type: "profile", key: k }); });
+
+  // Links (from hover previews and "Check all links")
+  linkIssues(add);
+
+  // Marketing
+  if (!String(state.marketing.t1 || "").trim()) add("bad", "Marketing", "Tier 1 highlights are empty.", { type: "marketing", key: "t1" });
+  return { issues: out, cells };
+}
+
+function paintFlags(cells) {
+  const filt = $("onlyProblems").checked;
+  $("rows").querySelectorAll("tr.main-row").forEach(tr => {
+    const i = +tr.dataset.i, p = state.products[i];
+    let bad = false, warn = false;
+    PRODUCT_FIELDS.forEach(f => {
+      const c = cells[i + ":" + f];
+      if (c) { if (c.level === "bad") bad = true; else warn = true; }
+      const note = tr.querySelector(`[data-note="${f}"]`);
+      if (note) { note.textContent = c ? c.note : ""; note.className = "cell-note " + (c ? c.level : ""); }
+      const el = f === "tiers" ? tr.querySelector("[data-tiers]") : f === "description" ? null : tr.querySelector(`[data-f="${f}"]`);
+      if (el) { el.classList.toggle("missing", !!c && c.level === "bad"); el.classList.toggle("warnf", !!c && c.level === "warn"); el.title = c ? c.note : ""; }
+    });
+    const len = (p.description || "").trim().length;
+    const dc = cells[i + ":description"];
+    const btn = tr.querySelector("[data-desc-toggle]");
+    btn.className = "desc-btn " + (dc ? dc.level : "ok");
+    btn.textContent = (len ? len + " chars" : "Missing") + (openDesc.has(i) ? " ▴" : " ▾");
+    const ta = $("rows").querySelector(`tr.desc-row[data-i="${i}"] textarea`);
+    if (ta) { ta.classList.toggle("missing", !!dc && dc.level === "bad"); ta.classList.toggle("warnf", !!dc && dc.level === "warn"); }
+    tr.classList.toggle("has-bad", bad); tr.classList.toggle("has-warn", !bad && warn);
+    const hide = filt && !bad && !warn;
+    tr.hidden = hide;
+    const dr = $("rows").querySelector(`tr.desc-row[data-i="${i}"]`); if (dr) dr.hidden = hide;
+  });
+  // Non-course fields
+  document.querySelectorAll("[data-b],[data-tier],[data-p],[data-m]").forEach(el => el.classList.remove("missing", "warnf"));
+}
+
+const GROUP_ORDER = ["Duplicates", "Links", "Missing fields", "Courses", "Bundle details", "Publisher profile", "Marketing"];
+let lastIssues = [];
+function issueLi(x, idx, prefix) {
+  return `<li class="${x.level}"><span class="pill">${x.level === "bad" ? "Fix" : "Check"}</span><span>${esc(x.msg)}</span>${x.target ? `<button type="button" class="go" data-go="${prefix}${idx}">Show</button>` : ""}</li>`;
+}
+function renderChecks() {
+  const { issues, cells } = computeIssues();
+  lastIssues = issues;
+  // mark non-course fields
+  paintFlags(cells);
+  issues.forEach(x => { const el = targetEl(x.target, false); if (el && x.target.type !== "product") el.classList.add(x.level === "bad" ? "missing" : "warnf"); });
+  const nb = issues.filter(x => x.level === "bad").length, nw = issues.length - nb;
+  const nDup = issues.filter(x => x.group === "Duplicates").length;
+  $("checkCounts").innerHTML = issues.length
+    ? `${nb ? `<span class="count-pill bad">${nb} to fix</span>` : ""}${nw ? `<span class="count-pill warn">${nw} to check</span>` : ""}${nDup ? `<span class="count-pill bad">${nDup} duplicate${nDup > 1 ? "s" : ""}</span>` : ""}`
+    : `<span class="count-pill ok">All fields filled, no duplicates</span>`;
+  if (!issues.length) $("issues").innerHTML = `<p class="all-good" style="margin:0">Every field is filled in and nothing is duplicated. Ready to download.</p>`;
+  else {
+    const groups = GROUP_ORDER.map(g => [g, issues.map((x, k) => [x, k]).filter(([x]) => x.group === g)]).filter(([, l]) => l.length);
+    $("issues").innerHTML = groups.map(([g, list]) => {
+      const LIMIT = 12, more = list.length - LIMIT;
+      const items = list.slice(0, expanded.has(g) ? list.length : LIMIT).map(([x, k]) => issueLi(x, k, "")).join("");
+      return `<div class="issue-group"><h3>${g} (${list.length})</h3><ul class="issues">${items}</ul>${more > 0 ? `<button type="button" class="btn small" data-expand="${esc(g)}" style="justify-self:start">${expanded.has(g) ? "Show fewer" : `Show all ${list.length}`}</button>` : ""}</div>`;
+    }).join("");
+  }
+  // import problems
+  const ip = state.importProblems || [];
+  $("importBox").hidden = !ip.length;
+  if (ip.length) {
+    $("importTitle").textContent = `${ip.length} problem${ip.length > 1 ? "s" : ""} found in ${state.importFile || "the imported file"}`;
+    $("importList").innerHTML = ip.map(m => `<li class="warn"><span class="pill">File</span><span>${esc(m)}</span></li>`).join("");
+  }
+  // summary tiles
+  const ps = state.products, tiers = state.bundle.tiers;
+  const tile = (k, v, s, cls = "") => `<div class="tile ${cls}"><span class="k">${k}</span><span class="v">${v}</span><span class="s">${s}</span></div>`;
+  let html = tile("Courses", ps.length, `${ps.filter(p => (p.description || "").trim()).length} with descriptions`);
+  [1, 2, 3].forEach(k => {
+    const inT = ps.filter(p => tierSet(p.tiers).has(k));
+    const value = inT.reduce((a, p) => a + (Number(p.price) || 0), 0);
+    html += tile(`Tier ${k} · $${esc(tiers[k - 1] || "?")}`, `${inT.length} courses`, `$${value.toLocaleString()} MSRP value`);
+  });
+  html += tile("Ready to submit?", nb ? `${nb} to fix` : (nw ? "Almost" : "Yes"), `${nDup ? nDup + " duplicate" + (nDup > 1 ? "s" : "") + " · " : ""}${nw} to check`, "status" + (nb ? " has-bad" : nw ? " has-warn" : ""));
+  $("summary").innerHTML = html;
+}
+const expanded = new Set();
+$("issues").addEventListener("click", e => {
+  const ex = e.target.closest("[data-expand]");
+  if (ex) { const g = ex.dataset.expand; expanded.has(g) ? expanded.delete(g) : expanded.add(g); renderChecks(); return; }
+  const go = e.target.closest("[data-go]"); if (go) goTo(lastIssues[+go.dataset.go].target);
+});
+$("onlyProblems").onchange = () => renderChecks();
+
+function targetEl(tg, prepare) {
+  if (!tg) return null;
+  if (tg.type === "bundle") return document.querySelector(`[data-b="${tg.key}"]`);
+  if (tg.type === "tier") return document.querySelector(`[data-tier="${tg.key}"]`);
+  if (tg.type === "marketing") return document.querySelector(`[data-m="${tg.key}"]`);
+  if (tg.type === "profile") { if (prepare) $("profileCard").open = true; return document.querySelector(`[data-p="${tg.key}"]`); }
+  if (tg.type === "product") {
+    if (tg.f === "description") {
+      if (prepare && !openDesc.has(tg.i)) { openDesc.add(tg.i); renderRows(); renderChecks(); }
+      return $("rows").querySelector(`tr.desc-row[data-i="${tg.i}"] textarea`) || $("rows").querySelector(`tr.main-row[data-i="${tg.i}"] [data-desc-toggle]`);
+    }
+    const tr = $("rows").querySelector(`tr.main-row[data-i="${tg.i}"]`);
+    if (!tr) return null;
+    return tg.f === "tiers" ? tr.querySelector(".tier-chip") : tr.querySelector(`[data-f="${tg.f}"]`);
+  }
+  return null;
+}
+function goTo(tg) {
+  if (tg && tg.type === "product" && $("onlyProblems").checked) { /* rows with problems stay visible */ }
+  const el = targetEl(tg, true); if (!el) return;
+  el.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
+  setTimeout(() => { el.focus({ preventScroll: true }); el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); }, 250);
+}
+
+function refresh() { renderChecks(); saveDraft(); }
+function renderAll() { renderStatic(); renderRows(); refresh(); }
+
+// ---------- events: bundle / marketing / profile ----------
+document.addEventListener("input", e => {
+  const el = e.target;
+  if (el.dataset.b) {
+    state.bundle[el.dataset.b] = el.value;
+    if (el.dataset.b === "launch" && el.value) {
+      state.bundle.end = addDays(el.value, 21); state.bundle.finalizedBy = addDays(el.value, -14); state.bundle.assetsDue = addDays(el.value, -14);
+      $("b-end").value = state.bundle.end; $("b-final").value = state.bundle.finalizedBy; $("b-assets").value = state.bundle.assetsDue;
+    }
+    refresh();
+  } else if (el.dataset.tier) { state.bundle.tiers[+el.dataset.tier] = el.value; refresh(); }
+  else if (el.dataset.m) { state.marketing[el.dataset.m] = el.value; refresh(); }
+  else if (el.dataset.p) { state.profile[el.dataset.p] = el.value; syncOpenLink(el); if (el.dataset.p === "name") $("profileName").textContent = el.value || "unnamed"; refresh(); }
+  else if (el.dataset.f && el.dataset.f !== "top5") {
+    const tr = el.closest("tr"); const i = +tr.dataset.i; const p = state.products[i];
+    p[el.dataset.f] = el.value;
+    if (el.dataset.f === "link" || el.dataset.f === "artwork") syncOpenLink(el);
+    if (el.dataset.f === "aiSource") { saveDraft(); return; }
+    if (el.dataset.f === "name") p.guessed = false;
+    if (el.dataset.f === "description") tr.querySelector("[data-count]").textContent = el.value.trim().length + " characters";
+    refresh();
+  }
+});
+document.addEventListener("change", e => {
+  const el = e.target;
+  if (["link", "artwork"].includes(el.dataset.f) || ["redeemUrl", "website", "iconUrl"].includes(el.dataset.p)) {
+    const kind = el.dataset.f === "artwork" || el.dataset.p === "iconUrl" ? "image" : "page";
+    if (isUrl(el.value)) getInfo(el.value, kind);
+  }
+  if (el.dataset.f === "top5") {
+    const i = +el.closest("tr").dataset.i; const v = el.value ? Number(el.value) : "";
+    if (v) state.products.forEach((p, j) => { if (j !== i && Number(p.top5) === v) p.top5 = ""; });
+    state.products[i].top5 = v; renderRows(); refresh();
+  }
+});
+
+$("rows").addEventListener("click", e => {
+  const tr = e.target.closest("tr"); if (!tr || tr.dataset.i === undefined) return; const i = +tr.dataset.i;
+  const tg = e.target.closest("[data-tier-toggle]");
+  if (tg) { const s = tierSet(state.products[i].tiers); const t = +tg.dataset.tierToggle; s.has(t) ? s.delete(t) : s.add(t); state.products[i].tiers = tierStr(s); renderRows(); refresh(); return; }
+  if (e.target.closest("[data-desc-toggle]")) { openDesc.has(i) ? openDesc.delete(i) : openDesc.add(i); renderRows(); refresh(); if (openDesc.has(i)) $("rows").querySelector(`tr.desc-row[data-i="${i}"] textarea`).focus(); return; }
+  const mv = e.target.closest("[data-move]");
+  if (mv) { const j = i + Number(mv.dataset.move); if (j < 0 || j >= state.products.length) return; const a = state.products; [a[i], a[j]] = [a[j], a[i]]; const oi = openDesc.has(i), oj = openDesc.has(j); openDesc.delete(i); openDesc.delete(j); if (oi) openDesc.add(j); if (oj) openDesc.add(i); renderRows(); refresh(); return; }
+  if (e.target.closest("[data-del]")) { const name = state.products[i].name || "this course"; state.products.splice(i, 1); openDesc = new Set([...openDesc].filter(x => x !== i).map(x => x > i ? x - 1 : x)); renderRows(); refresh(); toast(`Removed ${name}.`); return; }
+  if (e.target.closest("[data-ai-one]")) { aiDescriptions([i], true); }
+});
+
+$("addRowBtn").onclick = () => {
+  $("onlyProblems").checked = false;
+  state.products.push({ name: "", tiers: "3", link: "", price: state.products.at(-1)?.price ?? "", artwork: "", description: "", top5: "", quotes: "", notes: "", guessed: false });
+  renderRows(); refresh();
+  const rows = $("rows").querySelectorAll("tr.main-row"); rows[rows.length - 1].querySelector('[data-f="name"]').focus();
+};
+$("tierApply").onclick = () => {
+  const a = Math.max(0, +$("tc1").value || 0), b = Math.max(0, +$("tc2").value || 0);
+  state.products.forEach((p, i) => p.tiers = i < a ? "1,2,3" : i < a + b ? "2,3" : "3");
+  renderRows(); refresh(); toast("Tiers assigned by row order.");
+};
+$("msrpApply").onclick = () => { const v = $("msrpAll").value; if (v === "") return toast("Type a price first."); state.products.forEach(p => p.price = v); renderRows(); refresh(); toast(`MSRP set to $${v} for every course.`); };
+
+// ---------- paste parsing ----------
+function titleFromUrl(u) {
+  try {
+    const seg = new URL(u).pathname.split("/").filter(Boolean).pop() || "";
+    const small = new Set(["a", "an", "and", "the", "of", "for", "to", "in", "on", "with", "from", "by", "or", "at"]);
+    const upper = { ai: "AI", sql: "SQL", ml: "ML", oop: "OOP", gui: "GUI", html: "HTML", css: "CSS", js: "JS", api: "API", ui: "UI", ux: "UX", seo: "SEO", hr: "HR", it: "IT", uk: "UK", c: "C", chatgpt: "ChatGPT", javascript: "JavaScript", numpy: "NumPy", tensorflow: "TensorFlow" };
+    return seg.split("-").map((w, k) => upper[w] || (k && small.has(w) ? w : w.charAt(0).toUpperCase() + w.slice(1))).join(" ");
+  } catch (e) { return ""; }
+}
+const isArtLink = s => /drive\.google|dropbox|docs\.google|onedrive|sharepoint|imgur|\.(png|jpe?g|webp|psd)(\?|$)/i.test(s);
+function parsePaste(text) {
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const out = [];
+  for (const line of lines) {
+    let cells = line.includes("\t") ? line.split("\t") : line.split(/\s*\|\s*/);
+    if (cells.length === 1) cells = line.split(/\s+(?=https?:\/\/)/);
+    cells = cells.map(c => c.trim()).filter(c => c !== "");
+    if (!cells.length) continue;
+    const p = { name: "", tiers: "", link: "", price: "", artwork: "", description: "", top5: "", quotes: "", notes: "", guessed: false };
+    const texts = [];
+    for (const c of cells) {
+      const v = c.replace(/^\$/, "");
+      if (/^https?:\/\//i.test(c)) { if (isArtLink(c)) p.artwork ||= c; else if (!p.link) p.link = c; else p.artwork ||= c; }
+      else if (/^[123](\s*,\s*[123])*$/.test(c) && !p.tiers) p.tiers = tierStr(tierSet(c));
+      else if (/^\d+(\.\d+)?$/.test(v) && p.price === "") p.price = v;
+      else texts.push(c);
+    }
+    texts.sort((a, b) => a.length - b.length);
+    const longText = texts.filter(t => t.length > 180);
+    const shortText = texts.filter(t => t.length <= 180);
+    if (shortText.length) p.name = shortText[shortText.length - 1];
+    if (longText.length) p.description = longText[longText.length - 1];
+    if (/^(product name|name|title|course)/i.test(p.name) && !p.link) continue; // header row
+    if (!p.name && p.link) { p.name = titleFromUrl(p.link); p.guessed = true; }
+    if (!p.tiers) p.tiers = "3";
+    if (p.price === "" && state.products.length) p.price = state.products.at(-1).price;
+    out.push(p);
+  }
+  return out;
+}
+function pasteInto(replace) {
+  const items = parsePaste($("pasteBox").value);
+  if (!items.length) return toast("Nothing to add. Paste at least one name or link.");
+  const base = replace ? [] : state.products;
+  const seenN = new Set(base.map(p => normName(p.name)).filter(Boolean));
+  const seenL = new Set(base.map(p => normLink(p.link)).filter(Boolean));
+  const kept = [], skipped = [];
+  for (const p of items) {
+    const n = normName(p.name), l = normLink(p.link);
+    if ((l && seenL.has(l)) || (n && seenN.has(n) && !p.guessed)) { skipped.push(p.name || p.link); continue; }
+    if (n) seenN.add(n); if (l) seenL.add(l);
+    kept.push(p);
+  }
+  if (replace) { state.products = kept; openDesc.clear(); } else state.products.push(...kept);
+  $("pasteBox").value = ""; renderRows(); refresh();
+  const g = kept.filter(x => x.guessed).length;
+  let msg = `${replace ? "Replaced with" : "Added"} ${kept.length} course${kept.length === 1 ? "" : "s"}.`;
+  if (skipped.length) msg += ` Skipped ${skipped.length} duplicate${skipped.length > 1 ? "s" : ""} already in the list: ${skipped.slice(0, 3).join("; ")}${skipped.length > 3 ? "…" : ""}.`;
+  if (g) msg += ` ${g} title${g > 1 ? "s" : ""} came from the URL; check them.`;
+  toast(msg, skipped.length ? 8000 : 4500);
+  fillGuessedTitles().then(() => checkAllLinks(true));
+}
+$("pasteAdd").onclick = () => pasteInto(false);
+$("pasteReplace").onclick = () => pasteInto(true);
+
+// ---------- new / import ----------
+$("newBtn").onclick = () => {
+  if ($("newBtn").dataset.confirm !== "1") { $("newBtn").dataset.confirm = "1"; $("newBtn").textContent = "Click again to clear courses"; setTimeout(() => { $("newBtn").dataset.confirm = ""; $("newBtn").textContent = "Start new bundle"; }, 3500); return; }
+  $("newBtn").dataset.confirm = ""; $("newBtn").textContent = "Start new bundle";
+  state = { bundle: { tiers: state.bundle.tiers.slice() }, profile: state.profile, marketing: {}, products: [] };
+  normalise(state); openDesc.clear(); renderAll(); toast("New bundle started. Your publisher profile was kept.");
+};
+$("importFile").onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  try {
+    const wb = new ExcelJS.Workbook(); await wb.xlsx.load(await f.arrayBuffer());
+    const got = hsbReadWorkbook(wb);
+    got.profile.name = got.profile.publisher || state.profile.name || "";
+    got.importProblems = got.problems || []; got.importFile = f.name; delete got.problems;
+    state = got; normalise(state); openDesc.clear(); renderAll();
+    const nb = lastIssues.filter(x => x.level === "bad").length;
+    toast(`Imported ${state.products.length} courses from ${f.name}. ${state.importProblems.length} problem${state.importProblems.length === 1 ? "" : "s"} in the file, ${nb} field${nb === 1 ? "" : "s"} to fix.`, 6000);
+    $("checksCard").scrollIntoView({ behavior: "smooth", block: "start" });
+    previewCache.clear(); checkAllLinks(true);
+  } catch (err) { toast("Couldn't read that file: " + (err.message || err), 6000); }
+};
+$("importDismiss").onclick = () => { state.importProblems = []; refresh(); };
+
+// ---------- download / save to Drive ----------
+function fileName() { const t = (state.bundle.title || "Bundle").replace(/[\\/:*?"<>|]+/g, "").trim().replace(/\s+/g, "_"); return `${t}_HSB.xlsx`; }
+async function buildXlsx() {
+  if (typeof ExcelJS === "undefined") throw new Error("The spreadsheet library didn't load. Check your internet connection and reload.");
+  return await hsbBuildWorkbook(ExcelJS, state).xlsx.writeBuffer();
+}
+function toBase64(buf) {
+  const u = new Uint8Array(buf); let s = "";
+  for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+let pendingAction = "download";
+async function doDownload() {
+  const nb = lastIssues.filter(x => x.level === "bad").length;
+  try {
+    const buf = await buildXlsx();
+    const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = fileName();
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    toast(nb ? `Downloaded with ${nb} item${nb > 1 ? "s" : ""} still to fix.` : "Downloaded. All three tabs are filled.", 5000);
+  } catch (err) { toast("Download failed: " + (err.message || err), 6000); }
+}
+async function doSaveDrive() {
+  const btn = $("driveBtn"); btn.disabled = true; btn.innerHTML = `<span class="spin"></span> Saving`;
+  try {
+    const buf = await buildXlsx();
+    const r = await api.saveToDrive(toBase64(buf), fileName());
+    toast(`Saved to your Drive folder “${esc(r.folder)}”. <a href="${esc(r.url)}" target="_blank" rel="noopener">Open it</a>`, 12000, true);
+  } catch (err) { toast("Couldn't save to Drive: " + errMsg(err), 7000); }
+  finally { btn.disabled = false; btn.textContent = "Save to Drive"; }
+}
+function guardThen(action) {
+  pendingAction = action;
+  renderChecks();
+  const bad = lastIssues.map((x, k) => [x, k]).filter(([x]) => x.level === "bad");
+  if (!bad.length) return action === "drive" ? doSaveDrive() : doDownload();
+  const dups = bad.filter(([x]) => x.group === "Duplicates").length;
+  $("dlSub").textContent = `${bad.length} problem${bad.length > 1 ? "s" : ""}${dups ? `, including ${dups} duplicate${dups > 1 ? "s" : ""}` : ""}. If you continue, these cells will be blank, duplicated or broken in the sheet.`;
+  $("dlAnyway").textContent = action === "drive" ? "Save anyway" : "Download anyway";
+  $("dlList").innerHTML = bad.map(([x, k]) => issueLi(x, k, "")).join("");
+  $("dlModal").hidden = false; $("dlFix").focus();
+}
+$("downloadBtn").onclick = () => guardThen("download");
+$("driveBtn").onclick = () => guardThen("drive");
+$("dlList").addEventListener("click", e => { const go = e.target.closest("[data-go]"); if (go) { $("dlModal").hidden = true; goTo(lastIssues[+go.dataset.go].target); } });
+$("dlFix").onclick = () => { $("dlModal").hidden = true; $("checksCard").scrollIntoView({ behavior: "smooth", block: "start" }); };
+$("dlAnyway").onclick = () => { $("dlModal").hidden = true; pendingAction === "drive" ? doSaveDrive() : doDownload(); };
+$("dlModal").addEventListener("click", e => { if (e.target === $("dlModal")) $("dlModal").hidden = true; });
+document.addEventListener("keydown", e => { if (e.key === "Escape") { if (!$("dlModal").hidden) $("dlModal").hidden = true; hidePreview(); } });
+
+// ---------- link previews ----------
+const previewCache = new Map();   // url -> info object (resolved)
+const previewPending = new Map(); // url -> promise
+function linkInfo(url) { const u = String(url || "").trim(); return u ? previewCache.get(u) : undefined; }
+let checksTimer = null;
+function scheduleChecks() { clearTimeout(checksTimer); checksTimer = setTimeout(renderChecks, 150); }
+
+function driveId(u) { const m = /\/d\/([\w-]{10,})/.exec(u) || /[?&]id=([\w-]{10,})/.exec(u); return m && /google\.com/i.test(u) ? m[1] : ""; }
+function staticImageSrc(u) { const id = driveId(u); if (id) return `https://drive.google.com/thumbnail?id=${id}&sz=w480`; return u.replace(/([?&])dl=0\b/, "$1raw=1"); }
+
+function measure(info) {
+  const src = info.thumb || info.src;
+  if (!src || info.ratio || info.isImage === false) return Promise.resolve(info);
+  return new Promise(res => {
+    const img = new Image();
+    img.onload = () => { info.ratio = img.naturalWidth / img.naturalHeight; info.pxW = img.naturalWidth; info.pxH = img.naturalHeight; if (info.ok === null) info.ok = true; res(info); };
+    img.onerror = () => { if (info.ok === null) { info.ok = false; info.error = "Couldn't load the image. It may be private, or the link is wrong."; } res(info); };
+    img.src = src;
+  });
+}
+function getInfo(url, kind) {
+  url = String(url || "").trim();
+  if (previewCache.has(url)) return Promise.resolve(previewCache.get(url));
+  if (previewPending.has(url)) return previewPending.get(url);
+  let p;
+  if (api.backend) p = api.preview(url, kind);
+  else p = Promise.resolve(kind === "image" ? { kind, ok: null, src: staticImageSrc(url), static: true } : { kind, ok: null, static: true });
+  p = p.then(info => kind === "image" ? measure(info) : info).then(info => { previewCache.set(url, info); previewPending.delete(url); scheduleChecks(); return info; })
+       .catch(err => { previewPending.delete(url); return { kind, ok: null, error: errMsg(err) }; });
+  previewPending.set(url, p);
+  return p;
+}
+
+const PV_SEL = 'input[data-f="link"], input[data-f="artwork"], input[data-p="redeemUrl"], input[data-p="iconUrl"], input[data-p="website"], a.open-link';
+function pvResolve(t) {
+  const input = t.matches("a.open-link") ? t.parentElement.querySelector("input") : t;
+  if (!input) return null;
+  const field = input.dataset.f || input.dataset.p;
+  const url = input.value.trim();
+  if (!isUrl(url)) return null;
+  const tr = input.closest("tr.main-row");
+  return { url, field, kind: field === "artwork" || field === "iconUrl" ? "image" : "page", row: tr ? +tr.dataset.i : null };
+}
+let pvTimer = null, pvHideTimer = null, pvTarget = null, pvCtx = null;
+document.addEventListener("mouseover", e => {
+  const t = e.target.closest && e.target.closest(PV_SEL); if (!t) return;
+  clearTimeout(pvHideTimer);
+  if (t === pvTarget) return;
+  clearTimeout(pvTimer); pvTimer = setTimeout(() => showPreview(t), 280);
+});
+document.addEventListener("mouseout", e => {
+  const t = e.target.closest && e.target.closest(PV_SEL); if (!t) return;
+  const to = e.relatedTarget;
+  if (to && (t.contains(to) || $("pv").contains(to))) return;
+  clearTimeout(pvTimer); pvHideTimer = setTimeout(hidePreview, 220);
+});
+document.addEventListener("focusin", e => { if (e.target.matches && e.target.matches("a.open-link")) showPreview(e.target); });
+document.addEventListener("focusout", e => { if (e.target.matches && e.target.matches("a.open-link")) pvHideTimer = setTimeout(hidePreview, 220); });
+$("pv").addEventListener("mouseenter", () => clearTimeout(pvHideTimer));
+$("pv").addEventListener("mouseleave", () => { pvHideTimer = setTimeout(hidePreview, 220); });
+window.addEventListener("scroll", () => { if (pvTarget) placePreview(pvTarget); }, { passive: true });
+
+function hidePreview() { $("pv").hidden = true; pvTarget = null; pvCtx = null; }
+function placePreview(t) {
+  const pv = $("pv"), r = t.getBoundingClientRect();
+  const w = pv.offsetWidth, h = pv.offsetHeight, vw = innerWidth, vh = innerHeight;
+  let top = r.bottom + 8; if (top + h > vh - 8 && r.top - h - 8 > 8) top = r.top - h - 8;
+  let left = Math.min(Math.max(8, r.left), vw - w - 8);
+  pv.style.top = Math.max(8, top) + "px"; pv.style.left = left + "px";
+}
+function showPreview(t) {
+  const ctx = pvResolve(t); if (!ctx) return;
+  pvTarget = t; pvCtx = ctx;
+  const pv = $("pv"); pv.hidden = false;
+  const cached = linkInfo(ctx.url);
+  pv.innerHTML = cached ? previewHtml(cached, ctx) : `<div class="pv-load"><span class="spin"></span> Loading preview…</div>`;
+  placePreview(t);
+  if (!cached) getInfo(ctx.url, ctx.kind).then(info => { if (pvTarget === t) { pv.innerHTML = previewHtml(info, ctx); placePreview(t); } });
+}
+function fmtSize(n) { if (!n && n !== 0) return ""; if (n < 1024) return n + " B"; if (n < 1048576) return (n / 1024).toFixed(0) + " KB"; return (n / 1048576).toFixed(1) + " MB"; }
+const SHARING = { ANYONE: "Public on the web", ANYONE_WITH_LINK: "Anyone with the link", DOMAIN: "Your organisation only", DOMAIN_WITH_LINK: "Your organisation, with the link", PRIVATE: "Restricted (only people added)", PUBLIC_LINK: "Public link", UNKNOWN: "Unknown" };
+function ratioVerdict(info) {
+  if (!info.ratio) return "";
+  const ok = Math.abs(info.ratio - 1800 / 2560) <= 0.04;
+  const shape = info.ratio < 0.95 ? "Portrait" : info.ratio > 1.05 ? "Landscape" : "Square";
+  return ok ? `<span class="pv-pill ok">✓ ${shape}, matches 1800 × 2560</span>` : `<span class="pv-pill warn">${shape} (${info.ratio.toFixed(2)} : 1). HB asks for 1800 × 2560 portrait</span>`;
+}
+function titleMatches(pageTitle, name) {
+  const a = normName(pageTitle), b = normName(name);
+  if (!a || !b) return true;
+  if (a.includes(b) || b.includes(a)) return true;
+  const words = String(name).toLowerCase().split(/[^a-z0-9+#]+/).filter(w => w.length > 2);
+  if (!words.length) return true;
+  const pt = String(pageTitle).toLowerCase();
+  return words.filter(w => pt.includes(w)).length / words.length >= 0.7;
+}
+function pageTitleOf(info) { return info.h1 || String(info.title || "").split(/\s[|–—-]\s/)[0].trim(); }
+function previewHtml(info, ctx) {
+  const open = `<a href="${esc(ctx.url)}" target="_blank" rel="noopener">Open link ↗</a>`;
+  const urlLine = `<div class="pv-url" title="${esc(ctx.url)}">${esc(ctx.url)}</div>`;
+  if (ctx.kind === "image") {
+    if (info.ok === false) return `<div class="pv-body"><span class="pv-pill bad">✕ ${esc(info.error || "Can't open this link")}</span>${urlLine}<div class="pv-actions">${open}</div></div>`;
+    if (info.isFolder) return `<div class="pv-body"><strong>📁 ${esc(info.name)}</strong><span class="pv-sub">Folder with ${info.count} file${info.count === 1 ? "" : "s"}</span><span class="pv-pill warn">This is a folder. Link the artwork file itself.</span>${sharePill(info)}${urlLine}<div class="pv-actions">${open}</div></div>`;
+    const src = info.thumb || info.src;
+    const img = src && info.isImage !== false ? `<div class="pv-img"><img src="${esc(src)}" alt="Artwork preview"></div>` : `<div class="pv-img empty">No preview available${info.mime ? " for " + esc(info.mime) : ""}</div>`;
+    const meta = [info.mime, fmtSize(info.size)].filter(Boolean).join(" · ");
+    return `${img}<div class="pv-body">${info.name ? `<strong>${esc(info.name)}</strong>` : ""}${meta ? `<span class="pv-sub">${esc(meta)}</span>` : ""}
+      ${info.isImage === false ? `<span class="pv-pill bad">✕ Not an image file</span>` : ""}${sharePill(info)}${ratioVerdict(info)}
+      ${info.static && driveId(ctx.url) ? `<span class="pv-sub">Sharing can't be checked in the offline version.</span>` : ""}
+      ${urlLine}<div class="pv-actions">${open}</div></div>`;
+  }
+  // page
+  if (info.static) return `<div class="pv-body"><strong>Page preview</strong><span class="pv-sub">Page previews and link checks need the Google Apps Script version of this tool.</span>${urlLine}<div class="pv-actions">${open}</div></div>`;
+  if (info.ok === false) return `<div class="pv-body"><span class="pv-pill bad">✕ ${esc(info.error || "Page doesn't open")}</span>${urlLine}<div class="pv-actions">${open}</div></div>`;
+  if (info.ok == null) return `<div class="pv-body"><span class="pv-sub">${esc(info.error || "No preview")}</span>${urlLine}<div class="pv-actions">${open}</div></div>`;
+  const p = ctx.row != null ? state.products[ctx.row] : null;
+  const pt = pageTitleOf(info);
+  const mismatch = p && ctx.field === "link" && pt && !titleMatches(pt, p.name);
+  return `${info.image ? `<div class="pv-og"><img src="${esc(info.image)}" alt="" onerror="this.parentElement.remove()"></div>` : ""}<div class="pv-body">
+    <span class="pv-pill ok">✓ Page opens</span>
+    <strong>${esc(pt || info.title || "Untitled page")}</strong>
+    ${info.description ? `<span class="pv-desc">${esc(info.description.slice(0, 220))}${info.description.length > 220 ? "…" : ""}</span>` : ""}
+    ${mismatch ? `<span class="pv-pill warn">Title differs from row ${ctx.row + 1}: “${esc(p.name.slice(0, 60))}”</span>` : ""}
+    ${urlLine}<div class="pv-actions">${p && ctx.field === "link" && pt && normName(pt) !== normName(p.name) ? `<button type="button" class="btn small" data-use-title>Use page title</button>` : ""}${open}</div></div>`;
+}
+function sharePill(info) {
+  if (info.shared === true) return `<span class="pv-pill ok">✓ ${esc(SHARING[info.sharing] || "Shared")}</span>`;
+  if (info.shared === false) return `<span class="pv-pill bad">✕ ${esc(SHARING[info.sharing] || info.sharing)}. Humble Bundle won't be able to open it</span>`;
+  return "";
+}
+$("pv").addEventListener("click", e => {
+  if (!e.target.closest("[data-use-title]") || !pvCtx) return;
+  const info = linkInfo(pvCtx.url), i = pvCtx.row; if (!info || i == null) return;
+  state.products[i].name = pageTitleOf(info); state.products[i].guessed = false;
+  hidePreview(); renderRows(); refresh(); toast(`Row ${i + 1} now uses the page title.`);
+});
+
+function linkIssues(add) {
+  state.products.forEach((p, i) => {
+    const r = shortName(p, i), T = f => ({ type: "product", i, f });
+    const li = isUrl(p.link) ? linkInfo(p.link) : null;
+    if (li && li.kind === "page") {
+      if (li.ok === false) add("bad", "Links", `${r}: course link doesn't open (${li.error || "error"}).`, T("link"), "Page doesn't open");
+      else if (li.ok && p.name) { const pt = pageTitleOf(li); if (pt && !titleMatches(pt, p.name)) add("warn", "Links", `${r}: the course page is titled “${pt}”. Check the link or the name.`, T("link"), "Page title differs"); }
+    }
+    const ai = isUrl(p.artwork) ? linkInfo(p.artwork) : null;
+    if (ai && ai.kind === "image") {
+      if (ai.ok === false) add("bad", "Links", `${r}: artwork link: ${ai.error || "can't open it"}`, T("artwork"), "Can't open");
+      else if (ai.isFolder) add("bad", "Links", `${r}: artwork link is a folder. Link the image file itself.`, T("artwork"), "Folder, not a file");
+      else if (ai.shared === false) add("bad", "Links", `${r}: artwork is shared as “${SHARING[ai.sharing] || ai.sharing}”. Humble Bundle won't be able to open it.`, T("artwork"), "Not shared publicly");
+      else if (ai.isImage === false) add("bad", "Links", `${r}: artwork link isn't an image (${ai.mime || "unknown type"}).`, T("artwork"), "Not an image");
+      else if (ai.ratio && Math.abs(ai.ratio - 1800 / 2560) > 0.04) add("warn", "Links", `${r}: artwork isn't 1800 × 2560 portrait (ratio ${ai.ratio.toFixed(2)} : 1).`, T("artwork"), "Wrong shape");
+    }
+  });
+  [["redeemUrl", "page"], ["website", "page"], ["iconUrl", "image"]].forEach(([k]) => {
+    const info = isUrl(state.profile[k]) ? linkInfo(state.profile[k]) : null; if (!info) return;
+    const label = PROFILE_FIELDS.find(f => f[0] === k)[1];
+    if (info.ok === false) add("bad", "Links", `${label} doesn't open (${info.error || "error"}).`, { type: "profile", key: k });
+    else if (info.shared === false) add("bad", "Links", `${label} is shared as “${SHARING[info.sharing] || info.sharing}”. Humble Bundle won't be able to open it.`, { type: "profile", key: k });
+  });
+}
+
+function allLinkItems() {
+  const items = [];
+  state.products.forEach(p => { if (isUrl(p.link)) items.push({ url: p.link.trim(), kind: "page" }); if (isUrl(p.artwork)) items.push({ url: p.artwork.trim(), kind: "image" }); });
+  [["redeemUrl", "page"], ["website", "page"], ["iconUrl", "image"]].forEach(([k, kind]) => { if (isUrl(state.profile[k])) items.push({ url: state.profile[k].trim(), kind }); });
+  const seen = new Set(); return items.filter(x => !seen.has(x.url) && seen.add(x.url));
+}
+async function checkAllLinks(silent) {
+  const btn = $("checkLinksBtn");
+  const items = allLinkItems();
+  if (!items.length) return silent || toast("No links to check yet.");
+  if (!api.backend && !silent) toast("Only images can be checked without the back end. Connect it (top right) to check course pages and Drive sharing.", 6500);
+  btn.disabled = true;
+  let done = 0, broken = 0;
+  try {
+    for (let k = 0; k < items.length; k += 10) {
+      const chunk = items.slice(k, k + 10).filter(x => !previewCache.has(x.url));
+      btn.innerHTML = `<span class="spin"></span> Checking ${Math.min(k + 10, items.length)} of ${items.length}`;
+      if (!chunk.length) continue;
+      if (api.backend) {
+        const res = await api.checkLinks(chunk, !silent);
+        await Promise.all(chunk.map(async x => { const info = res[x.url] || { kind: x.kind, ok: false, error: "No answer" }; if (x.kind === "image") await measure(info); previewCache.set(x.url, info); }));
+      } else {
+        await Promise.all(chunk.map(x => getInfo(x.url, x.kind)));
+      }
+      done += chunk.length;
+    }
+    renderChecks();
+    broken = lastIssues.filter(x => x.group === "Links" && x.level === "bad").length;
+    if (!silent) toast(broken ? `Checked ${items.length} links. ${broken} need fixing; see Links in the list.` : `Checked ${items.length} links. All open${api.backend ? " and are shared correctly" : ""}.`, 6000);
+  } catch (err) { if (!silent) toast("Link check stopped: " + errMsg(err), 7000); }
+  finally { btn.disabled = false; btn.textContent = "Check all links"; }
+}
+$("checkLinksBtn").onclick = () => { previewCache.clear(); checkAllLinks(false); };
+
+// Fill titles for links pasted on their own
+async function fillGuessedTitles() {
+  if (!api.backend) return;
+  const rows = state.products.map((p, i) => [p, i]).filter(([p]) => p.guessed && isUrl(p.link));
+  if (!rows.length) return;
+  const res = await api.checkLinks(rows.map(([p]) => ({ url: p.link.trim(), kind: "page" }))).catch(() => ({}));
+  let n = 0;
+  rows.forEach(([p]) => { const info = res[p.link.trim()]; if (info) { previewCache.set(p.link.trim(), info); if (info.ok && pageTitleOf(info)) { p.name = pageTitleOf(info); p.guessed = false; n++; } } });
+  if (n) { renderRows(); refresh(); toast(`Got ${n} title${n > 1 ? "s" : ""} from the course pages.`); }
+}
+
+// ---------- AI ----------
+function styleExamples() {
+  const ex = state.products.map(p => (p.description || "").trim()).filter(d => d.length > 350).slice(0, 2);
+  return ex.length ? ex : EXAMPLE.products.slice(0, 2).map(p => p.description);
+}
+function aiOffMsg() {
+  return api.backend
+    ? "AI isn't set up yet. Add a free AI key in the Apps Script editor under Project Settings → Script properties (Cloudflare is recommended; see SETUP.md)."
+    : "AI writing needs the back end. Click Connect (top right) and enter the team access key.";
+}
+function errMsg(err) { const m = (err && (err.message || err.code)) || String(err); if (/LOCKED/.test(m)) return "Connect to the back end first (top right)."; return /AI_NOT_SET_UP/.test(m) ? aiOffMsg() : m.replace(/^Exception:\s*/, ""); }
+async function aiDescriptions(indices, force) {
+  if (!cfg.aiEnabled) return toast(aiOffMsg(), 8000);
+  const list = (indices || state.products.map((p, i) => i).filter(i => !(state.products[i].description || "").trim())).filter(i => state.products[i] && state.products[i].name.trim());
+  if (!list.length) return toast(indices ? "Add the product name first. The AI needs it." : "Every course already has a description.");
+  if (indices) { const b1 = $("rows").querySelector(`tr.desc-row[data-i="${indices[0]}"] [data-ai-one]`); if (b1) { b1.disabled = true; b1.innerHTML = `<span class="spin"></span> Reading page and writing`; } }
+  const btn = $("aiDescBtn"); btn.disabled = true;
+  let done = 0, usedProvider = "";
+  const brand = state.profile.publisher || state.profile.name || "the provider";
+  try {
+    for (let k = 0; k < list.length; k += 4) {
+      const chunk = list.slice(k, k + 4);
+      btn.innerHTML = `<span class="spin"></span> Writing ${done + 1}–${Math.min(done + chunk.length, list.length)} of ${list.length}`;
+      const courses = chunk.map(i => { const p = state.products[i]; return { id: i, title: p.name, url: isUrl(p.link) ? p.link.trim() : "", details: (p.aiSource || "").trim().slice(0, 5000) }; });
+      const res = await api.writeDescriptions({ courses, examples: styleExamples(), brand });
+      const arr = Array.isArray(res) ? res : (res && res.items) || [];
+      if (res && res.provider) usedProvider = res.provider;
+      arr.forEach(r => { const p = state.products[r.id]; if (p && r.description && (force || !(p.description || "").trim())) p.description = String(r.description).trim(); });
+      done += chunk.length;
+      renderRows(); refresh();
+    }
+    toast(`Wrote ${done} description${done > 1 ? "s" : ""} from the course pages${usedProvider ? " with " + usedProvider : ""}. Read them over before submitting.`, 6000);
+  } catch (err) { toast("AI couldn't finish: " + errMsg(err), 8000); renderRows(); refresh(); }
+  finally { btn.disabled = false; btn.textContent = "Write missing descriptions with AI"; }
+}
+$("aiDescBtn").onclick = () => aiDescriptions(null, false);
+$("aiMktBtn").onclick = async () => {
+  if (!cfg.aiEnabled) return toast(aiOffMsg(), 8000);
+  const btn = $("aiMktBtn");
+  if (state.marketing.t1.trim() && btn.dataset.confirm !== "1") { btn.dataset.confirm = "1"; btn.textContent = "Click again to replace current text"; setTimeout(() => { btn.dataset.confirm = ""; btn.textContent = "Draft tier 1 highlights with AI"; }, 3500); return; }
+  btn.dataset.confirm = ""; btn.disabled = true; btn.innerHTML = `<span class="spin"></span> Drafting`;
+  try {
+    const res = await api.writeHighlights({ brand: state.profile.publisher || "the provider", title: state.bundle.title, names: state.products.map(p => p.name).filter(Boolean) });
+    const text = typeof res === "string" ? res : (res && res.text) || "";
+    state.marketing.t1 = String(text).trim(); $("m1").value = state.marketing.t1; refresh(); toast(`Draft ready${res && res.provider ? " (" + res.provider + ")" : ""}. Edit it to taste.`);
+  } catch (err) { toast("AI couldn't finish: " + errMsg(err), 8000); }
+  finally { btn.disabled = false; btn.textContent = "Draft tier 1 highlights with AI"; }
+};
+
+// ---------- shared profiles ----------
+function renderProfileSelect() {
+  const sel = $("profileSelect");
+  sel.innerHTML = profiles.length ? profiles.map(p => `<option value="${esc(p.id)}">${esc(p.name)}${p.updatedBy ? ` (saved by ${esc(p.updatedBy)})` : ""}</option>`).join("") : `<option value="">No saved profiles yet</option>`;
+  $("profileLoad").disabled = !profiles.length;
+  $("dbState").textContent = api.backend ? (profiles.length ? `(${profiles.length} shared with the team)` : "") : "(this browser only)";
+}
+$("profileSave").onclick = async () => {
+  const name = (state.profile.name || state.profile.publisher || "").trim();
+  if (!name) return toast("Give the profile a name first.");
+  state.profile.name = name;
+  try { profiles = await api.saveProfile(name, JSON.stringify(state.profile)); renderProfileSelect(); toast(api.backend ? `Saved the ${name} profile for everyone using this tool.` : `Saved the ${name} profile in this browser.`); }
+  catch (err) { toast("Couldn't save: " + errMsg(err), 7000); }
+};
+$("profileLoad").onclick = () => {
+  const p = profiles.find(x => x.id === $("profileSelect").value); if (!p) return;
+  try { state.profile = Object.assign({}, JSON.parse(p.data), { name: p.name }); renderStatic(); refresh(); toast(`Loaded the ${p.name} profile.`); }
+  catch (e) { toast("That saved profile is damaged. Save it again."); }
+};
+
+// ---------- connect to the back end ----------
+function showUnlock(msg) {
+  $("unlockMsg").textContent = msg || "";
+  $("unlockMsg").hidden = !msg;
+  $("unlockUrlField").hidden = !!HSB_API_URL;
+  $("unlockUrl").value = conn.url || "";
+  $("unlockName").value = conn.name || "";
+  $("unlockKey").value = "";
+  $("unlockModal").hidden = false;
+  (HSB_API_URL ? $("unlockKey") : $("unlockUrl")).focus();
+}
+$("unlockForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const url = HSB_API_URL || $("unlockUrl").value.trim();
+  const key = $("unlockKey").value.trim();
+  if (!/^https:\/\/script\.google(usercontent)?\.com\//.test(url)) { $("unlockMsg").textContent = "Paste the Apps Script web app URL (it starts with https://script.google.com/)."; $("unlockMsg").hidden = false; return; }
+  if (!key) { $("unlockMsg").textContent = "Type the team access key."; $("unlockMsg").hidden = false; return; }
+  const btn = $("unlockGo"); btn.disabled = true; btn.innerHTML = `<span class="spin"></span> Checking`;
+  const prev = conn;
+  conn = { url, key, name: $("unlockName").value.trim() };
+  try {
+    cfg = await remote("getConfig");
+    saveConn(conn);
+    $("unlockModal").hidden = true;
+    toast("Connected. Previews, link checks, AI and team profiles are on.");
+    await afterConnect();
+  } catch (err) {
+    if (!/LOCKED/.test(err.message)) { $("unlockMsg").textContent = err.message; $("unlockMsg").hidden = false; }
+    conn = prev;
+  } finally { btn.disabled = false; btn.textContent = "Connect"; }
+});
+$("unlockSkip").onclick = () => { $("unlockModal").hidden = true; conn.dismissed = true; saveConn(conn); renderMode(); };
+$("connectBtn").onclick = () => showUnlock("");
+
+function renderMode() {
+  document.querySelectorAll("#aiDescBtn,#aiMktBtn").forEach(b => { b.classList.toggle("ai-off", !cfg.aiEnabled); b.title = cfg.aiEnabled ? "" : aiOffMsg(); });
+  $("driveBtn").hidden = !api.backend;
+  $("connectBtn").hidden = HAS_GAS;
+  $("connectBtn").textContent = api.backend ? "Connected ✓" : "Connect";
+  $("connectBtn").classList.toggle("connected", api.backend);
+  $("modeNote").textContent = api.backend
+    ? (cfg.user ? `Signed in as ${cfg.user}` : "Connected") + (cfg.aiProvider ? ` · AI: ${cfg.aiProvider}` : " · AI not set up")
+    : "Not connected: page previews, link checks, AI and team profiles are off.";
+}
+async function afterConnect() {
+  renderMode();
+  try { profiles = await api.listProfiles(); } catch (e) { profiles = []; }
+  renderProfileSelect();
+  previewCache.clear();
+  checkAllLinks(true);
+}
+
+// ---------- boot ----------
+let cfg = { aiEnabled: false, user: "" };
+renderAll();
+renderProfileSelect();
+renderMode();
+(async () => {
+  if (api.backend) {
+    try { cfg = await api.config(); }
+    catch (e) { if (!/LOCKED/.test(e.message)) toast("Couldn't reach the back end: " + errMsg(e), 7000); }
+  } else if (!HAS_GAS && !conn.dismissed) {
+    showUnlock("");
+  }
+  await afterConnect();
+})();
+</script>
 </body>
-</html>
