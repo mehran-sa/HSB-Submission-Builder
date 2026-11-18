@@ -181,6 +181,7 @@ tr.has-warn td.num { color: var(--warn); font-weight: 600; }
 .pv-actions { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
 .pv-actions a { font-weight: 600; font-size: 12.5px; }
 #modeNote { display: block; }
+.ver { display: inline-block; font-size: 11px; font-weight: 600; padding: 0 7px; border-radius: 999px; background: var(--tint); color: var(--green-ink); }
 .btn.connected { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); }
 .modal-back { position: fixed; inset: 0; background: rgba(10, 16, 12, .45); z-index: 60; display: grid; place-items: center; padding: 16px; }
 .modal-back[hidden] { display: none; }
@@ -221,7 +222,7 @@ a.open-link[hidden] { display: none; }
   <div class="top-inner">
     <div class="brand">
       <h1>HSB Submission Builder</h1>
-      <small>Fill once, download the Humble Bundle sheet in the exact 3-tab format. <span id="modeNote"></span></small>
+      <small>Fill once, download the Humble Bundle sheet in the exact 3-tab format. <span class="ver" id="verTag">v4 · 18 Nov</span> <span id="modeNote"></span></small>
     </div>
     <div class="actions">
       <label class="btn" for="importFile" title="Load a sheet you submitted before and reuse it">Import a previous sheet</label>
@@ -682,15 +683,18 @@ const HAS_GAS = typeof google !== "undefined" && google.script && google.script.
 function gas(fn, ...args) { return new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...args)); }
 function loadConn() { try { return JSON.parse(localStorage.getItem(API_KEY_STORE) || "{}"); } catch (e) { return {}; } }
 function saveConn(c) { try { localStorage.setItem(API_KEY_STORE, JSON.stringify(c)); } catch (e) {} }
+// Company (Workspace) links look like /a/macros/<domain>/s/…; the plain /macros/s/… form is the one that works from outside.
+function plainExecUrl(u) { return String(u || "").trim().replace(/^https:\/\/script\.google\.com\/a\/macros\/[^/]+\/s\//, "https://script.google.com/macros/s/"); }
 let conn = loadConn();
 if (HSB_API_URL) conn.url = HSB_API_URL;
+if (conn.url) conn.url = plainExecUrl(conn.url);
 async function remote(action, ...args) {
   if (!conn.url || !conn.key) throw new Error("LOCKED");
   let res;
   try {
     res = await fetch(conn.url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action, args, key: conn.key, user: conn.name || "" }) });
-  } catch (e) { throw new Error("Couldn't reach the Apps Script back end. Check your internet connection, or the web app URL."); }
-  let j; try { j = await res.json(); } catch (e) { throw new Error("The back end didn't answer properly. Check that the web app is deployed with access set to “Anyone”."); }
+  } catch (e) { throw new Error("NETWORK"); }
+  let j; try { j = await res.json(); } catch (e) { throw new Error("NOT_JSON"); }
   if (!j.ok) {
     if (j.error === "BAD_KEY") { showUnlock("That team access key isn't right."); throw new Error("LOCKED"); }
     if (j.error === "NO_APP_KEY") throw new Error("The back end has no APP_KEY yet. Add it in Apps Script → Project Settings → Script properties.");
@@ -1449,7 +1453,8 @@ function aiOffMsg() {
     ? "AI isn't set up yet. Add a free AI key in the Apps Script editor under Project Settings → Script properties (Cloudflare is recommended; see SETUP.md)."
     : "AI writing needs the back end. Click Connect (top right) and enter the team access key.";
 }
-function errMsg(err) { const m = (err && (err.message || err.code)) || String(err); if (/LOCKED/.test(m)) return "Connect to the back end first (top right)."; return /AI_NOT_SET_UP/.test(m) ? aiOffMsg() : m.replace(/^Exception:\s*/, ""); }
+const CONN_HELP = "Couldn't reach the Apps Script back end. Open the web app URL in a private/incognito window: it should show {\"ok\":true,…}. If it asks you to sign in, set “Who has access” to “Anyone”. If it shows an error or an old page, deploy a new version of the new Code.gs.";
+function errMsg(err) { const m = (err && (err.message || err.code)) || String(err); if (/NETWORK|NOT_JSON/.test(m)) return CONN_HELP; if (/LOCKED/.test(m)) return "Connect to the back end first (top right)."; return /AI_NOT_SET_UP/.test(m) ? aiOffMsg() : m.replace(/^Exception:\s*/, ""); }
 async function aiDescriptions(indices, force) {
   if (!cfg.aiEnabled) return toast(aiOffMsg(), 8000);
   const list = (indices || state.products.map((p, i) => i).filter(i => !(state.products[i].description || "").trim())).filter(i => state.products[i] && state.products[i].name.trim());
@@ -1521,9 +1526,16 @@ function showUnlock(msg) {
 }
 $("unlockForm").addEventListener("submit", async e => {
   e.preventDefault();
-  const url = HSB_API_URL || $("unlockUrl").value.trim();
+  const url = plainExecUrl(HSB_API_URL || $("unlockUrl").value.trim());
   const key = $("unlockKey").value.trim();
-  if (!/^https:\/\/script\.google(usercontent)?\.com\//.test(url)) { $("unlockMsg").textContent = "Paste the Apps Script web app URL (it starts with https://script.google.com/)."; $("unlockMsg").hidden = false; return; }
+  if (!/^https:\/\/script\.google\.com\/(a\/macros\/[^/]+|macros)\/s\/[\w-]+\/exec\/?$/.test(url)) {
+    $("unlockMsg").innerHTML = /\/dev\/?$/.test(url)
+      ? "That's the <strong>/dev</strong> test link, which only works for the script's owner. Use the <strong>Web app URL ending in /exec</strong> from Deploy → Manage deployments."
+      : /script\.google\.com\/(home|d\/)/.test(url)
+        ? "That's the script editor link. Use the <strong>Web app URL ending in /exec</strong> from Deploy → Manage deployments."
+        : "Paste the Apps Script <strong>Web app URL</strong>. It starts with https://script.google.com/macros/s/ and ends with <strong>/exec</strong>.";
+    $("unlockMsg").hidden = false; return;
+  }
   if (!key) { $("unlockMsg").textContent = "Type the team access key."; $("unlockMsg").hidden = false; return; }
   const btn = $("unlockGo"); btn.disabled = true; btn.innerHTML = `<span class="spin"></span> Checking`;
   const prev = conn;
@@ -1535,7 +1547,14 @@ $("unlockForm").addEventListener("submit", async e => {
     toast("Connected. Previews, link checks, AI and team profiles are on.");
     await afterConnect();
   } catch (err) {
-    if (!/LOCKED/.test(err.message)) { $("unlockMsg").textContent = err.message; $("unlockMsg").hidden = false; }
+    if (/NETWORK|NOT_JSON/.test(err.message)) {
+      $("unlockMsg").innerHTML = `<strong>The web app didn't answer.</strong> <a href="${esc(url)}" target="_blank" rel="noopener">Open the URL in a new tab</a> (ideally a private/incognito window) and check what you see:<br>
+        • <strong>{"ok":true, "service":"HSB Submission Builder API"…}</strong>: the back end is fine; check your internet, VPN or ad-blocker, then try again.<br>
+        • <strong>A Google sign-in page</strong>: in Apps Script, Deploy → Manage deployments → ✏ Edit, set <em>Execute as: Me</em> and <em>Who has access: Anyone</em> (not “Anyone with Google account”), Version: New version. If “Anyone” isn't in the list, your company blocks it; create the Apps Script project with a personal Gmail account instead.<br>
+        • <strong>“The page file is missing”, “Script function not found” or another error</strong>: paste the new Code.gs, then Deploy → Manage deployments → ✏ Edit → <em>Version: New version</em> → Deploy.<br>
+        • <strong>“Authorization is required”</strong>: in the editor, run any function once (e.g. getConfig) and approve the permissions.`;
+      $("unlockMsg").hidden = false;
+    } else if (!/LOCKED/.test(err.message)) { $("unlockMsg").textContent = err.message; $("unlockMsg").hidden = false; }
     conn = prev;
   } finally { btn.disabled = false; btn.textContent = "Connect"; }
 });
@@ -1543,6 +1562,7 @@ $("unlockSkip").onclick = () => { $("unlockModal").hidden = true; conn.dismissed
 $("connectBtn").onclick = () => showUnlock("");
 
 function renderMode() {
+  $("verTag").textContent = "v4 · 18 Nov · " + (HAS_GAS ? "running in Apps Script" : "web version");
   document.querySelectorAll("#aiDescBtn,#aiMktBtn").forEach(b => { b.classList.toggle("ai-off", !cfg.aiEnabled); b.title = cfg.aiEnabled ? "" : aiOffMsg(); });
   $("driveBtn").hidden = !api.backend;
   $("connectBtn").hidden = HAS_GAS;
